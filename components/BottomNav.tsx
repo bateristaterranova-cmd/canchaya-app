@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
+import React, { useCallback } from 'react';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, usePathname } from 'expo-router';
 import { useAppStore, TabType } from '../lib/store';
@@ -27,20 +27,19 @@ const pathnameToTab: Record<string, TabType> = {
   '/profile': 'profile',
 };
 
-export function BottomNav() {
+export const BottomNav = React.memo(function BottomNav() {
   const { isDarkMode, setActiveTab } = useAppStore();
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const isDark = isDarkMode;
 
-  // Derive active tab from pathname for reliability
   const activeTab = pathnameToTab[pathname] || 'home';
 
-  const handleTabPress = (tab: TabType) => {
+  const handleTabPress = useCallback((tab: TabType) => {
     setActiveTab(tab);
     router.navigate(tabRouteMap[tab] as any);
-  };
+  }, [setActiveTab, router]);
 
   return (
     <View
@@ -122,18 +121,13 @@ export function BottomNav() {
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     borderTopWidth: 1,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    zIndex: 100,
   },
   navInner: {
     flexDirection: 'row',

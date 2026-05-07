@@ -5,31 +5,19 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Dimensions,
   FlatList,
-  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView, { Marker } from 'react-native-maps';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useAppStore } from '../../lib/store';
 import { mockComplexes, formatPrice, getComplexById, getCourtTypeLabel } from '../../lib/mock-data';
 import { Colors, DEFAULT_REGION } from '../../constants/theme';
 import { GlassCard } from '../../components/GlassCard';
-
-// Lazy-load MapView only on native platforms
-let MapView: any = null;
-let Marker: any = null;
-if (Platform.OS !== 'web') {
-  try {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
-  } catch {}
-}
 
 export default function MapScreen() {
   const router = useRouter();
@@ -103,60 +91,34 @@ export default function MapScreen() {
 
       {viewMode === 'map' ? (
         <View style={styles.mapContainer}>
-          {Platform.OS === 'web' ? (
-            /* Web map placeholder */
-            <View style={[styles.webMapPlaceholder, { backgroundColor: isDark ? '#1a2e1a' : '#E8F5E9' }]}>
-              {filteredComplexes.map((complex, index) => {
-                const col = index % 4;
-                const row = Math.floor(index / 4);
-                return (
-                  <TouchableOpacity
-                    key={complex.id}
-                    style={[styles.webMapPin, { left: `${15 + col * 22}%`, top: `${15 + row * 30}%` }]}
-                    onPress={() => setSelectedComplexId(complex.id)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={[styles.webMapPinIcon, { backgroundColor: Colors.primary }]}>
-                      <Ionicons name="football" size={14} color="#111" />
-                    </View>
-                    <Text style={[styles.webMapPinLabel, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
-                      {complex.name.split(' ').slice(0, 2).join(' ')}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : MapView ? (
-            <>
-              <MapView style={styles.map} initialRegion={DEFAULT_REGION} showsUserLocation showsMyLocationButton>
-                {filteredComplexes.map((complex) => (
-                  <Marker
-                    key={complex.id}
-                    coordinate={{ latitude: complex.lat, longitude: complex.lng }}
-                    onPress={() => setSelectedComplexId(complex.id)}
-                  >
-                    <View style={styles.markerContainer}>
-                      <View style={[styles.marker, { backgroundColor: Colors.primary }]}>
-                        <Ionicons name="football" size={14} color="#111" />
-                      </View>
-                      <View style={styles.markerArrow} />
-                    </View>
-                  </Marker>
-                ))}
-              </MapView>
-              <TouchableOpacity
-                style={[styles.centerBtn, { backgroundColor: isDark ? Colors.glassBgDark : 'rgba(255,255,255,0.9)' }]}
-                activeOpacity={0.7}
+          <MapView
+            style={styles.map}
+            initialRegion={DEFAULT_REGION}
+            showsUserLocation
+            showsMyLocationButton
+            userInterfaceStyle={isDark ? 'dark' : 'light'}
+          >
+            {filteredComplexes.map((complex) => (
+              <Marker
+                key={complex.id}
+                coordinate={{ latitude: complex.lat, longitude: complex.lng }}
+                onPress={() => setSelectedComplexId(complex.id)}
               >
-                <Ionicons name="locate-outline" size={22} color={Colors.primary} />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <View style={styles.mapUnavailable}>
-              <Ionicons name="map-outline" size={40} color={Colors.textTertiary} />
-              <Text style={[styles.mapUnavailableText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Mapa no disponible</Text>
-            </View>
-          )}
+                <View style={styles.markerContainer}>
+                  <View style={[styles.marker, { backgroundColor: Colors.primary }]}>
+                    <Ionicons name="football" size={14} color="#111" />
+                  </View>
+                  <View style={styles.markerArrow} />
+                </View>
+              </Marker>
+            ))}
+          </MapView>
+          <TouchableOpacity
+            style={[styles.centerBtn, { backgroundColor: isDark ? Colors.glassBgDark : 'rgba(255,255,255,0.9)' }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="locate-outline" size={22} color={Colors.primary} />
+          </TouchableOpacity>
 
           {/* Bottom sheet for selected complex */}
           {selectedComplex && (
@@ -269,12 +231,6 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, height: 40, fontSize: 14 },
   mapContainer: { flex: 1, position: 'relative' },
   map: { flex: 1 },
-  webMapPlaceholder: { flex: 1, position: 'relative', overflow: 'hidden' },
-  webMapPin: { position: 'absolute', alignItems: 'center' },
-  webMapPinIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 4, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4 },
-  webMapPinLabel: { fontSize: 9, fontWeight: '600', marginTop: 2, maxWidth: 80, textAlign: 'center' },
-  mapUnavailable: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  mapUnavailableText: { fontSize: 14, fontWeight: '500' },
   markerContainer: { alignItems: 'center' },
   marker: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 4 },
   markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: Colors.primary, marginTop: -1 },

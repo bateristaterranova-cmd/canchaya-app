@@ -2,7 +2,7 @@
   "expo": {
     "name": "CanchaYa",
     "slug": "canchaya",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,39 +11,44 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#84CC16"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.canchaya.app",
+      "buildNumber": "2",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "CanchaYa necesita acceso a tu ubicaci\u00f3n para mostrarte canchas deportivas cercanas."
+        "NSLocationWhenInUseUsageDescription": "CanchaYa necesita acceso a tu ubicación para mostrarte canchas deportivas cercanas.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "GOOGLE_MAPS_API_KEY_PLACEHOLDER"
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#84CC16"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.canchaya.app",
+      "versionCode": 2,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION"
       ],
-      "versionCode": 1
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "config": {
+        "googleMaps": {
+          "apiKey": "GOOGLE_MAPS_API_KEY_PLACEHOLDER"
+        }
+      }
     },
     "plugins": [
       "expo-router",
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "CanchaYa necesita acceso a tu ubicaci\u00f3n para mostrarte canchas deportivas cercanas."
+          "locationWhenInUsePermission": "CanchaYa necesita acceso a tu ubicación para mostrarte canchas deportivas cercanas."
         }
       ]
     ],

@@ -45,7 +45,7 @@ function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
-  const handleAuth = () => {
+  const handleAuth = useCallback(() => {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
@@ -61,7 +61,7 @@ function AuthScreen() {
         setShowWelcome(false);
       }, 1500);
     }, 1000);
-  };
+  }, [name, email, login]);
 
   if (showWelcome) {
     return (
@@ -185,9 +185,9 @@ function AuthScreen() {
 }
 
 // ========================
-// Venue Card
+// Venue Card (memoized)
 // ========================
-function VenueCard({ complex, isFav, onToggleFav, onPress }: {
+const VenueCard = React.memo(function VenueCard({ complex, isFav, onToggleFav, onPress }: {
   complex: any;
   isFav: boolean;
   onToggleFav: () => void;
@@ -235,7 +235,7 @@ function VenueCard({ complex, isFav, onToggleFav, onPress }: {
       </GlassCard>
     </Animated.View>
   );
-}
+});
 
 // ========================
 // Home Screen
@@ -294,6 +294,13 @@ export default function HomeScreen() {
     selectComplex(id);
     router.push('/detail');
   }, [selectComplex, router]);
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery('');
+    setSelectedDistrict('Todos');
+    setSelectedSport('todos');
+    setShowFavoritesOnly(false);
+  }, [setSearchQuery]);
 
   if (!isAuthenticated) return <AuthScreen />;
 
@@ -517,7 +524,7 @@ export default function HomeScreen() {
             </Text>
             <TouchableOpacity
               style={styles.emptyButton}
-              onPress={() => { setSearchQuery(''); setSelectedDistrict('Todos'); setSelectedSport('todos'); setShowFavoritesOnly(false); }}
+              onPress={resetFilters}
               activeOpacity={0.8}
             >
               <Text style={styles.emptyButtonText}>Ver todas las canchas</Text>
