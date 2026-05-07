@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,27 +11,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown, useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { useAppStore } from '../lib/store';
-import {
-  getComplexById,
-  formatPrice,
-  mockTimeSlots,
-} from '../lib/mock-data';
-import { Colors, Spacing, BorderRadius, FontSizes, Shadows } from '../constants/theme';
+import { getComplexById, formatPrice, mockTimeSlots } from '../lib/mock-data';
+import { Colors } from '../constants/theme';
 import { GlassCard } from '../components/GlassCard';
 
-const COUNTDOWN_SECONDS = 600; // 10 minutes
+const COUNTDOWN_SECONDS = 600;
 
-interface PaymentMethod {
-  id: string;
-  label: string;
-  icon: string;
-  color: string;
-}
-
-const paymentMethods: PaymentMethod[] = [
+const paymentMethods = [
   { id: 'yape', label: 'Yape', icon: 'phone-portrait-outline', color: '#7C3AED' },
   { id: 'plin', label: 'Plin', icon: 'flash-outline', color: '#0D9488' },
   { id: 'card', label: 'Tarjeta', icon: 'card-outline', color: '#3B82F6' },
@@ -56,28 +45,26 @@ export default function CheckoutScreen() {
   const serviceFee = Math.round(price * 0.05);
   const totalPrice = price + serviceFee;
 
-  // Countdown timer
+  const endTime = selectedTimeSlot
+    ? `${String(parseInt(selectedTimeSlot.split(':')[0]) + 1).padStart(2, '0')}:00`
+    : '';
+
   useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 0) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown(prev => prev <= 0 ? 0 : prev - 1);
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
   const minutes = Math.floor(countdown / 60);
   const seconds = countdown % 60;
-  const countdownProgress = countdown / COUNTDOWN_SECONDS;
   const isLowTime = countdown < 120;
 
-  const endTime = selectedTimeSlot
-    ? `${String(parseInt(selectedTimeSlot.split(':')[0]) + 1).padStart(2, '0')}:00`
-    : '';
+  const successScale = useSharedValue(0);
+  useEffect(() => {
+    if (showSuccess) successScale.value = withSpring(1, { damping: 12 });
+  }, [showSuccess]);
+  const successStyle = useAnimatedStyle(() => ({ transform: [{ scale: successScale.value }] }));
 
   const handleConfirm = () => {
     if (!selectedPayment) {
@@ -97,15 +84,6 @@ export default function CheckoutScreen() {
       { text: 'Sí', style: 'destructive', onPress: () => router.push('/(tabs)') },
     ]);
   };
-
-  // Success animation
-  const successScale = useSharedValue(0);
-  useEffect(() => {
-    if (showSuccess) {
-      successScale.value = withSpring(1, { damping: 12 });
-    }
-  }, [showSuccess]);
-  const successStyle = useAnimatedStyle(() => ({ transform: [{ scale: successScale.value }] }));
 
   if (!complex || !court) {
     return (
@@ -138,16 +116,12 @@ export default function CheckoutScreen() {
         {/* Stepper */}
         <View style={styles.stepperContainer}>
           <View style={styles.stepRow}>
-            <View style={styles.stepCompleted}>
-              <Ionicons name="checkmark" size={14} color="#FFF" />
-            </View>
+            <View style={styles.stepCompleted}><Ionicons name="checkmark" size={14} color="#FFF" /></View>
             <Text style={[styles.stepLabel, { color: Colors.primary }]}>Detalle</Text>
           </View>
           <View style={[styles.stepLine, { backgroundColor: Colors.primary }]} />
           <View style={styles.stepRow}>
-            <View style={[styles.stepActive, { borderColor: Colors.primary }]}>
-              <Text style={styles.stepActiveNum}>2</Text>
-            </View>
+            <View style={[styles.stepActive, { borderColor: Colors.primary }]}><Text style={styles.stepActiveNum}>2</Text></View>
             <Text style={[styles.stepLabel, { color: Colors.primary }]}>Pago</Text>
           </View>
           <View style={[styles.stepLine, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
@@ -159,51 +133,41 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        {/* Countdown timer */}
+        {/* Countdown */}
         <Animated.View entering={FadeInDown.duration(300)}>
           <GlassCard style={styles.countdownCard} padding={12}>
             <View style={styles.countdownRow}>
               <Ionicons name="timer-outline" size={18} color={isLowTime ? Colors.error : Colors.primary} />
-              <Text style={[styles.countdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-                Tiempo para completar el pago
-              </Text>
+              <Text style={[styles.countdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Tiempo para completar el pago</Text>
             </View>
             <Text style={[styles.countdownTime, { color: isLowTime ? Colors.error : Colors.primary }]}>
               {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
             </Text>
             <View style={styles.countdownBarBg}>
-              <View style={[styles.countdownBarFill, { width: `${countdownProgress * 100}%`, backgroundColor: isLowTime ? Colors.error : Colors.primary }]} />
+              <View style={[styles.countdownBarFill, { width: `${(countdown / COUNTDOWN_SECONDS) * 100}%`, backgroundColor: isLowTime ? Colors.error : Colors.primary }]} />
             </View>
           </GlassCard>
         </Animated.View>
 
-        {/* Booking summary */}
+        {/* Summary */}
         <Animated.View entering={FadeInDown.duration(300).delay(50)}>
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Resumen de reserva</Text>
           <GlassCard style={styles.summaryCard} padding={14}>
-            <View style={styles.summaryItem}>
-              <Ionicons name="location-outline" size={16} color={Colors.primary} />
-              <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Complejo</Text>
-              <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{complex.name}</Text>
-            </View>
-            <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-            <View style={styles.summaryItem}>
-              <Ionicons name="football-outline" size={16} color={Colors.primary} />
-              <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Cancha</Text>
-              <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{court.name}</Text>
-            </View>
-            <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-            <View style={styles.summaryItem}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
-              <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Fecha</Text>
-              <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]}>{selectedDate}</Text>
-            </View>
-            <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-            <View style={styles.summaryItem}>
-              <Ionicons name="time-outline" size={16} color={Colors.primary} />
-              <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Hora</Text>
-              <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]}>{selectedTimeSlot} - {endTime}</Text>
-            </View>
+            {[
+              { icon: 'location-outline', label: 'Complejo', value: complex.name },
+              { icon: 'football-outline', label: 'Cancha', value: court.name },
+              { icon: 'calendar-outline', label: 'Fecha', value: selectedDate },
+              { icon: 'time-outline', label: 'Hora', value: `${selectedTimeSlot} - ${endTime}` },
+            ].map((item, i, arr) => (
+              <React.Fragment key={item.label}>
+                <View style={styles.summaryItem}>
+                  <Ionicons name={item.icon as any} size={16} color={Colors.primary} />
+                  <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{item.label}</Text>
+                  <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{item.value}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />}
+              </React.Fragment>
+            ))}
             <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
             <View style={styles.summaryItem}>
               <Ionicons name="timer-outline" size={16} color={Colors.primary} />
@@ -227,7 +191,7 @@ export default function CheckoutScreen() {
           </GlassCard>
         </Animated.View>
 
-        {/* Payment methods */}
+        {/* Payment */}
         <Animated.View entering={FadeInDown.duration(300).delay(100)}>
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Método de pago</Text>
           <View style={styles.paymentGrid}>
@@ -236,20 +200,14 @@ export default function CheckoutScreen() {
               return (
                 <TouchableOpacity
                   key={method.id}
-                  style={[
-                    styles.paymentCard,
-                    { borderColor: isSelected ? method.color : (isDark ? Colors.borderDark : Colors.border) },
-                    isSelected && { backgroundColor: method.color + '15', shadowColor: method.color, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-                  ]}
+                  style={[styles.paymentCard, { borderColor: isSelected ? method.color : (isDark ? Colors.borderDark : Colors.border) }, isSelected && { backgroundColor: method.color + '15' }]}
                   onPress={() => setSelectedPayment(method.id)}
                   activeOpacity={0.7}
                 >
                   <View style={[styles.paymentIcon, { backgroundColor: method.color + '20' }]}>
                     <Ionicons name={method.icon as any} size={20} color={method.color} />
                   </View>
-                  <Text style={[styles.paymentLabel, { color: isSelected ? method.color : (isDark ? Colors.textDark : Colors.text) }]}>
-                    {method.label}
-                  </Text>
+                  <Text style={[styles.paymentLabel, { color: isSelected ? method.color : (isDark ? Colors.textDark : Colors.text) }]}>{method.label}</Text>
                   {isSelected && (
                     <View style={[styles.paymentCheck, { backgroundColor: method.color }]}>
                       <Ionicons name="checkmark" size={12} color="#FFF" />
@@ -261,7 +219,7 @@ export default function CheckoutScreen() {
           </View>
         </Animated.View>
 
-        {/* Promo code */}
+        {/* Promo */}
         <Animated.View entering={FadeInDown.duration(300).delay(150)}>
           <GlassCard style={styles.promoCard} padding={10}>
             <View style={styles.promoRow}>
@@ -280,7 +238,6 @@ export default function CheckoutScreen() {
           </GlassCard>
         </Animated.View>
 
-        {/* Security badge */}
         <Animated.View entering={FadeInDown.duration(300).delay(200)}>
           <View style={styles.securityRow}>
             <Ionicons name="lock-closed-outline" size={14} color={Colors.success} />
@@ -289,18 +246,13 @@ export default function CheckoutScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* Sticky bottom bar */}
+      {/* Bottom bar */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12), backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
         <View style={styles.bottomBarInner}>
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel} activeOpacity={0.7}>
             <Text style={styles.cancelBtnText}>Cancelar</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.confirmButton, !selectedPayment && { opacity: 0.5 }]}
-            onPress={handleConfirm}
-            disabled={!selectedPayment}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={[styles.confirmButton, !selectedPayment && { opacity: 0.5 }]} onPress={handleConfirm} disabled={!selectedPayment} activeOpacity={0.8}>
             <Ionicons name="checkmark-circle-outline" size={18} color="#111" />
             <Text style={styles.confirmButtonText}>Confirmar Pago</Text>
           </TouchableOpacity>
@@ -331,13 +283,9 @@ const styles = StyleSheet.create({
   backBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: Colors.primary, borderRadius: 8, marginTop: 8 },
   backBtnText: { color: '#111', fontWeight: '700' },
   scrollView: { flex: 1 },
-
-  // Header
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
   backButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(132,204,22,0.1)' },
   headerTitle: { fontSize: 20, fontWeight: '800' },
-
-  // Stepper
   stepperContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, marginBottom: 16 },
   stepRow: { alignItems: 'center', gap: 4 },
   stepCompleted: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
@@ -347,19 +295,13 @@ const styles = StyleSheet.create({
   stepPendingNum: { fontSize: 12, fontWeight: '600' },
   stepLabel: { fontSize: 11, fontWeight: '600' },
   stepLine: { flex: 1, height: 2, marginHorizontal: 4 },
-
-  // Countdown
   countdownCard: { marginHorizontal: 16, marginBottom: 12 },
   countdownRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   countdownLabel: { fontSize: 12 },
   countdownTime: { fontSize: 28, fontWeight: '800', textAlign: 'center', marginBottom: 6, fontVariant: ['tabular-nums'] },
   countdownBarBg: { height: 4, borderRadius: 2, backgroundColor: 'rgba(132,204,22,0.15)' },
   countdownBarFill: { height: '100%', borderRadius: 2 },
-
-  // Section title
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10, paddingHorizontal: 16 },
-
-  // Summary
   summaryCard: { marginHorizontal: 16, marginBottom: 16 },
   summaryItem: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
   summaryLabel: { fontSize: 13, flex: 1 },
@@ -367,34 +309,24 @@ const styles = StyleSheet.create({
   summaryDivider: { height: 1 },
   totalLabel: { fontSize: 15, fontWeight: '800', flex: 1 },
   totalValue: { fontSize: 20, fontWeight: '800', color: Colors.primary },
-
-  // Payment
   paymentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, marginBottom: 16 },
   paymentCard: { width: '47%', borderWidth: 2, borderRadius: 14, padding: 14, alignItems: 'center', gap: 6, position: 'relative' },
   paymentIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   paymentLabel: { fontSize: 13, fontWeight: '700' },
   paymentCheck: { position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-
-  // Promo
   promoCard: { marginHorizontal: 16, marginBottom: 12 },
   promoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   promoInput: { flex: 1, height: 36, fontSize: 13 },
   promoButton: { backgroundColor: Colors.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   promoButtonText: { color: '#111', fontWeight: '700', fontSize: 13 },
-
-  // Security
   securityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 },
   securityText: { fontSize: 12, color: Colors.success, fontWeight: '500' },
-
-  // Bottom bar
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)', paddingHorizontal: 16, paddingTop: 12 },
   bottomBarInner: { flexDirection: 'row', gap: 10 },
   cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.error, alignItems: 'center', justifyContent: 'center' },
   cancelBtnText: { color: Colors.error, fontWeight: '700', fontSize: 14 },
   confirmButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Colors.primary, paddingVertical: 14, borderRadius: 12 },
   confirmButtonText: { color: '#111', fontWeight: '700', fontSize: 15 },
-
-  // Success overlay
   successOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   successContent: { alignItems: 'center', gap: 8 },
   successIcon: { marginBottom: 8 },

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   FlatList,
   Alert,
@@ -12,11 +11,11 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useAppStore } from '../../lib/store';
 import { formatPrice, getReservationStatusLabel, getComplexById } from '../../lib/mock-data';
-import { Colors, Spacing, BorderRadius, FontSizes, Shadows } from '../../constants/theme';
+import { Colors } from '../../constants/theme';
 import { GlassCard } from '../../components/GlassCard';
 
 type ResTab = 'upcoming' | 'history';
@@ -32,10 +31,10 @@ const statusColors: Record<string, string> = {
 export default function ActivityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isDarkMode, isAuthenticated, reservations, cancelReservation, setActiveTab } = useAppStore();
+  const { isDarkMode, isAuthenticated, reservations, cancelReservation } = useAppStore();
   const isDark = isDarkMode;
 
-  const [activeTab, setActiveTabLocal] = useState<ResTab>('upcoming');
+  const [activeTab, setActiveTab] = useState<ResTab>('upcoming');
 
   const upcoming = useMemo(() =>
     reservations.filter(r => r.status === 'pending' || r.status === 'confirmed' || r.status === 'in_process'),
@@ -50,14 +49,10 @@ export default function ActivityScreen() {
   const displayList = activeTab === 'upcoming' ? upcoming : history;
 
   const handleCancel = (id: string) => {
-    Alert.alert(
-      'Cancelar reserva',
-      '¿Estás seguro de que deseas cancelar esta reserva?',
-      [
-        { text: 'No', style: 'cancel' },
-        { text: 'Sí, cancelar', style: 'destructive', onPress: () => cancelReservation(id) },
-      ]
-    );
+    Alert.alert('Cancelar reserva', '¿Estás seguro?', [
+      { text: 'No', style: 'cancel' },
+      { text: 'Sí, cancelar', style: 'destructive', onPress: () => cancelReservation(id) },
+    ]);
   };
 
   if (!isAuthenticated) {
@@ -71,37 +66,32 @@ export default function ActivityScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top || 12 }]}>
         <Text style={[styles.headerTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Mis Reservas</Text>
       </View>
 
-      {/* Tab switcher */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'upcoming' && { backgroundColor: Colors.primary }]}
-          onPress={() => setActiveTabLocal('upcoming')}
+          onPress={() => setActiveTab('upcoming')}
           activeOpacity={0.7}
         >
-          <Text style={[styles.tabText, activeTab === 'upcoming' && { color: '#111', fontWeight: '700' }]}>
-            Próximas
-          </Text>
+          <Text style={[styles.tabText, activeTab === 'upcoming' && { color: '#111', fontWeight: '700' }]}>Próximas</Text>
           {upcoming.length > 0 && (
-            <View style={[styles.tabBadge, activeTab === 'upcoming' ? { backgroundColor: 'rgba(0,0,0,0.2)' } : { backgroundColor: 'rgba(132, 204, 22, 0.12)', borderWidth: 1, borderColor: 'rgba(132, 204, 22, 0.2)' }]}>
+            <View style={[styles.tabBadge, activeTab === 'upcoming' ? { backgroundColor: 'rgba(0,0,0,0.2)' } : { backgroundColor: 'rgba(132, 204, 22, 0.12)' }]}>
               <Text style={[styles.tabBadgeText, activeTab === 'upcoming' && { color: '#111' }]}>{upcoming.length}</Text>
             </View>
           )}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'history' && { backgroundColor: Colors.primary }]}
-          onPress={() => setActiveTabLocal('history')}
+          onPress={() => setActiveTab('history')}
           activeOpacity={0.7}
         >
           <Text style={[styles.tabText, activeTab === 'history' && { color: '#111', fontWeight: '700' }]}>Historial</Text>
         </TouchableOpacity>
       </View>
 
-      {/* List */}
       <FlatList
         data={displayList}
         keyExtractor={(item) => item.id}
@@ -114,16 +104,10 @@ export default function ActivityScreen() {
             <Animated.View entering={FadeInDown.duration(300).delay(index * 60)}>
               <GlassCard style={styles.resCard} padding={12}>
                 <View style={styles.resRow}>
-                  {complex && (
-                    <Image source={{ uri: complex.image }} style={styles.resImage} contentFit="cover" />
-                  )}
+                  {complex && <Image source={{ uri: complex.image }} style={styles.resImage} contentFit="cover" />}
                   <View style={styles.resInfo}>
-                    <Text style={[styles.resComplexName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
-                      {item.complexName}
-                    </Text>
-                    <Text style={[styles.resCourtName, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]} numberOfLines={1}>
-                      {item.courtName}
-                    </Text>
+                    <Text style={[styles.resComplexName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{item.complexName}</Text>
+                    <Text style={[styles.resCourtName, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]} numberOfLines={1}>{item.courtName}</Text>
                     <View style={styles.resDetails}>
                       <View style={styles.resDetailItem}>
                         <Ionicons name="calendar-outline" size={12} color={Colors.textTertiary} />
@@ -144,11 +128,7 @@ export default function ActivityScreen() {
                   </View>
                 </View>
                 {(item.status === 'pending' || item.status === 'confirmed') && (
-                  <TouchableOpacity
-                    style={styles.cancelBtn}
-                    onPress={() => handleCancel(item.id)}
-                    activeOpacity={0.7}
-                  >
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(item.id)} activeOpacity={0.7}>
                     <Text style={styles.cancelBtnText}>Cancelar</Text>
                   </TouchableOpacity>
                 )}
@@ -167,16 +147,6 @@ export default function ActivityScreen() {
             <Text style={[styles.emptySub, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
               {activeTab === 'upcoming' ? 'Reserva una cancha y aparecerá aquí' : 'Tus reservas completadas aparecerán aquí'}
             </Text>
-            {activeTab === 'upcoming' && (
-              <TouchableOpacity
-                style={styles.emptyButton}
-                onPress={() => setActiveTab('home')}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="search-outline" size={16} color="#111" />
-                <Text style={styles.emptyButtonText}>Reservar ahora</Text>
-              </TouchableOpacity>
-            )}
           </View>
         }
       />
@@ -188,18 +158,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   authGuard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   authGuardText: { fontSize: 16, fontWeight: '600' },
-
   header: { paddingHorizontal: 16, paddingBottom: 8 },
   headerTitle: { fontSize: 24, fontWeight: '800' },
-
   tabContainer: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, backgroundColor: 'rgba(132,204,22,0.08)', borderRadius: 12, padding: 3 },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10 },
   tabText: { fontSize: 14, fontWeight: '600', color: '#999' },
   tabBadge: { paddingHorizontal: 7, paddingVertical: 1, borderRadius: 10 },
   tabBadgeText: { fontSize: 11, fontWeight: '700', color: '#4D7C0F' },
-
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
-
   resCard: { marginBottom: 10, position: 'relative' },
   resRow: { flexDirection: 'row', gap: 10 },
   resImage: { width: 60, height: 60, borderRadius: 10 },
@@ -214,14 +180,10 @@ const styles = StyleSheet.create({
   statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 11, fontWeight: '700' },
   resPrice: { fontSize: 14, fontWeight: '800', color: Colors.primary },
-
   cancelBtn: { marginTop: 8, alignSelf: 'flex-end', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: Colors.error },
   cancelBtnText: { color: Colors.error, fontWeight: '600', fontSize: 12 },
-
   emptyState: { alignItems: 'center', paddingVertical: 48 },
   emptyIcon: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   emptyTitle: { fontSize: 17, fontWeight: '700', marginBottom: 4 },
   emptySub: { fontSize: 13, textAlign: 'center', marginBottom: 16 },
-  emptyButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
-  emptyButtonText: { color: '#111', fontWeight: '700', fontSize: 14 },
 });

@@ -1,26 +1,46 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../lib/store';
+import { useRouter, usePathname } from 'expo-router';
+import { useAppStore, TabType } from '../lib/store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Shadows } from '../constants/theme';
-import Animated, { useAnimatedStyle, withTiming, useSharedValue, withRepeat } from 'react-native-reanimated';
-import { useEffect } from 'react';
 
-const { width } = Dimensions.get('window');
-
-const tabs = [
-  { id: 'home' as const, label: 'Inicio', icon: 'home-outline', activeIcon: 'home' },
-  { id: 'activity' as const, label: 'Actividad', icon: 'calendar-outline', activeIcon: 'calendar' },
-  { id: 'map' as const, label: 'Mapa', icon: 'location-outline', activeIcon: 'location', isCenter: true },
-  { id: 'profile' as const, label: 'Perfil', icon: 'person-outline', activeIcon: 'person' },
+const tabs: { id: TabType; label: string; icon: string; activeIcon: string; isCenter?: boolean }[] = [
+  { id: 'home', label: 'Inicio', icon: 'home-outline', activeIcon: 'home' },
+  { id: 'activity', label: 'Actividad', icon: 'calendar-outline', activeIcon: 'calendar' },
+  { id: 'map', label: 'Mapa', icon: 'location-outline', activeIcon: 'location', isCenter: true },
+  { id: 'profile', label: 'Perfil', icon: 'person-outline', activeIcon: 'person' },
 ];
 
-export function BottomNav() {
-  const { activeTab, setActiveTab, isDarkMode } = useAppStore();
-  const insets = useSafeAreaInsets();
+const tabRouteMap: Record<TabType, string> = {
+  home: '/(tabs)',
+  activity: '/(tabs)/activity',
+  map: '/(tabs)/map',
+  profile: '/(tabs)/profile',
+};
 
+const pathnameToTab: Record<string, TabType> = {
+  '/': 'home',
+  '/activity': 'activity',
+  '/map': 'map',
+  '/profile': 'profile',
+};
+
+export function BottomNav() {
+  const { isDarkMode, setActiveTab } = useAppStore();
+  const router = useRouter();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const isDark = isDarkMode;
+
+  // Derive active tab from pathname for reliability
+  const activeTab = pathnameToTab[pathname] || 'home';
+
+  const handleTabPress = (tab: TabType) => {
+    setActiveTab(tab);
+    router.navigate(tabRouteMap[tab] as any);
+  };
 
   return (
     <View
@@ -40,12 +60,33 @@ export function BottomNav() {
 
           if (tab.isCenter) {
             return (
-              <CenterMapButton
+              <TouchableOpacity
                 key={tab.id}
-                isActive={isActive}
-                isDark={isDark}
-                onPress={() => setActiveTab(tab.id)}
-              />
+                style={styles.centerButtonContainer}
+                onPress={() => handleTabPress(tab.id)}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={[
+                    styles.centerButton,
+                    { backgroundColor: Colors.primary },
+                  ]}
+                >
+                  <Ionicons name="location" size={20} color="#111111" />
+                </View>
+                <Text
+                  style={[
+                    styles.tabLabel,
+                    {
+                      color: isActive ? Colors.primary : isDark ? Colors.textTertiaryDark : Colors.textTertiary,
+                      fontWeight: isActive ? '700' : '500',
+                      marginTop: 2,
+                    },
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
             );
           }
 
@@ -53,7 +94,7 @@ export function BottomNav() {
             <TouchableOpacity
               key={tab.id}
               style={styles.tabButton}
-              onPress={() => setActiveTab(tab.id)}
+              onPress={() => handleTabPress(tab.id)}
               activeOpacity={0.7}
             >
               <View style={styles.tabContent}>
@@ -83,79 +124,6 @@ export function BottomNav() {
   );
 }
 
-function CenterMapButton({
-  isActive,
-  isDark,
-  onPress,
-}: {
-  isActive: boolean;
-  isDark: boolean;
-  onPress: () => void;
-}) {
-  const glowOpacity = useSharedValue(0.25);
-  const glowScale = useSharedValue(1);
-
-  useEffect(() => {
-    glowOpacity.value = withRepeat(
-      withTiming(isActive ? 0.4 : 0.15, { duration: 1500 }),
-      -1,
-      true
-    );
-    glowScale.value = withRepeat(
-      withTiming(isActive ? 1.15 : 1.08, { duration: 1500 }),
-      -1,
-      true
-    );
-  }, [isActive]);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    position: 'absolute' as const,
-    top: -6,
-    left: -6,
-    right: -6,
-    bottom: -6,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    opacity: glowOpacity.value,
-    transform: [{ scale: glowScale.value }],
-  }));
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      style={styles.centerButtonContainer}
-    >
-      {/* Glow ring */}
-      <View style={styles.centerCircleWrapper}>
-        <Animated.View style={glowStyle} />
-        <View
-          style={[
-            styles.centerButton,
-            {
-              backgroundColor: Colors.primary,
-            },
-          ]}
-        >
-          <Ionicons name="location" size={22} color="#111111" />
-        </View>
-      </View>
-      <Text
-        style={[
-          styles.tabLabel,
-          {
-            color: isActive ? Colors.primary : isDark ? Colors.textTertiaryDark : Colors.textTertiary,
-            fontWeight: isActive ? '700' : '500',
-            marginTop: 4,
-          },
-        ]}
-      >
-        Mapa
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
@@ -171,7 +139,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    height: 68,
+    height: 64,
     paddingHorizontal: 8,
   },
   tabButton: {
@@ -196,11 +164,6 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 4,
-    elevation: 3,
   },
   centerButtonContainer: {
     flex: 1,
@@ -208,26 +171,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     paddingBottom: 4,
   },
-  centerCircleWrapper: {
-    position: 'relative',
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -20,
-  },
   centerButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
-    elevation: 8,
-    shadowColor: Colors.primary,
+    marginTop: -16,
+    elevation: 6,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
 });

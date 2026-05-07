@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Dimensions,
@@ -14,16 +13,14 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useAppStore } from '../../lib/store';
 import { mockComplexes, formatPrice, getComplexById, getCourtTypeLabel } from '../../lib/mock-data';
-import { Colors, Spacing, BorderRadius, FontSizes, Shadows, DEFAULT_REGION } from '../../constants/theme';
+import { Colors, DEFAULT_REGION } from '../../constants/theme';
 import { GlassCard } from '../../components/GlassCard';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// Lazy-load MapView only on native platforms to avoid web crash
+// Lazy-load MapView only on native platforms
 let MapView: any = null;
 let Marker: any = null;
 if (Platform.OS !== 'web') {
@@ -34,64 +31,10 @@ if (Platform.OS !== 'web') {
   } catch {}
 }
 
-// Web-compatible map placeholder
-function WebMapPlaceholder({ complexes, onComplexSelect }: { complexes: any[]; onComplexSelect: (id: string) => void }) {
-  const { isDarkMode } = useAppStore();
-  const isDark = isDarkMode;
-
-  return (
-    <View style={styles.mapContainer}>
-      <View style={[styles.webMapPlaceholder, { backgroundColor: isDark ? '#1a2e1a' : '#E8F5E9' }]}>
-        {/* Grid lines to simulate a map */}
-        <View style={styles.webMapGrid}>
-          {[...Array(8)].map((_, i) => (
-            <View key={`v${i}`} style={[styles.webMapGridLineV, { left: `${(i + 1) * 11}%`, backgroundColor: isDark ? 'rgba(132,204,22,0.12)' : 'rgba(132,204,22,0.2)' }]} />
-          ))}
-          {[...Array(6)].map((_, i) => (
-            <View key={`h${i}`} style={[styles.webMapGridLineH, { top: `${(i + 1) * 14}%`, backgroundColor: isDark ? 'rgba(132,204,22,0.12)' : 'rgba(132,204,22,0.2)' }]} />
-          ))}
-        </View>
-
-        {/* Map pins */}
-        {complexes.map((complex, index) => {
-          // Spread pins across the map in a grid-like layout
-          const col = index % 4;
-          const row = Math.floor(index / 4);
-          const leftPercent = 15 + col * 22;
-          const topPercent = 15 + row * 30;
-          return (
-            <TouchableOpacity
-              key={complex.id}
-              style={[styles.webMapPin, { left: `${leftPercent}%`, top: `${topPercent}%` }]}
-              onPress={() => onComplexSelect(complex.id)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.webMapPinIcon, { backgroundColor: Colors.primary }]}>
-                <Ionicons name="football" size={14} color="#111" />
-              </View>
-              <Text style={[styles.webMapPinLabel, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
-                {complex.name.split(' ').slice(0, 2).join(' ')}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* Center label */}
-        <View style={styles.webMapLabel}>
-          <Ionicons name="map-outline" size={20} color={Colors.primary} />
-          <Text style={[styles.webMapLabelText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-            Vista de mapa (disponible en app nativa)
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 export default function MapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isDarkMode, isAuthenticated, favorites, toggleFavorite, selectComplex, searchQuery, setSearchQuery } = useAppStore();
+  const { isDarkMode, favorites, toggleFavorite, selectComplex, searchQuery, setSearchQuery } = useAppStore();
   const isDark = isDarkMode;
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
@@ -111,15 +54,6 @@ export default function MapScreen() {
     selectComplex(id);
     router.push('/detail');
   };
-
-  if (!isAuthenticated) {
-    return (
-      <View style={[styles.authGuard, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-        <Ionicons name="lock-closed-outline" size={48} color={Colors.textTertiary} />
-        <Text style={[styles.authGuardText, { color: isDark ? Colors.textDark : Colors.text }]}>Inicia sesión para ver el mapa</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
@@ -170,15 +104,31 @@ export default function MapScreen() {
       {viewMode === 'map' ? (
         <View style={styles.mapContainer}>
           {Platform.OS === 'web' ? (
-            <WebMapPlaceholder complexes={filteredComplexes} onComplexSelect={(id) => setSelectedComplexId(id)} />
+            /* Web map placeholder */
+            <View style={[styles.webMapPlaceholder, { backgroundColor: isDark ? '#1a2e1a' : '#E8F5E9' }]}>
+              {filteredComplexes.map((complex, index) => {
+                const col = index % 4;
+                const row = Math.floor(index / 4);
+                return (
+                  <TouchableOpacity
+                    key={complex.id}
+                    style={[styles.webMapPin, { left: `${15 + col * 22}%`, top: `${15 + row * 30}%` }]}
+                    onPress={() => setSelectedComplexId(complex.id)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.webMapPinIcon, { backgroundColor: Colors.primary }]}>
+                      <Ionicons name="football" size={14} color="#111" />
+                    </View>
+                    <Text style={[styles.webMapPinLabel, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
+                      {complex.name.split(' ').slice(0, 2).join(' ')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           ) : MapView ? (
             <>
-              <MapView
-                style={styles.map}
-                initialRegion={DEFAULT_REGION}
-                showsUserLocation
-                showsMyLocationButton
-              >
+              <MapView style={styles.map} initialRegion={DEFAULT_REGION} showsUserLocation showsMyLocationButton>
                 {filteredComplexes.map((complex) => (
                   <Marker
                     key={complex.id}
@@ -194,8 +144,6 @@ export default function MapScreen() {
                   </Marker>
                 ))}
               </MapView>
-
-              {/* Center location button */}
               <TouchableOpacity
                 style={[styles.centerBtn, { backgroundColor: isDark ? Colors.glassBgDark : 'rgba(255,255,255,0.9)' }]}
                 activeOpacity={0.7}
@@ -206,9 +154,7 @@ export default function MapScreen() {
           ) : (
             <View style={styles.mapUnavailable}>
               <Ionicons name="map-outline" size={40} color={Colors.textTertiary} />
-              <Text style={[styles.mapUnavailableText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-                Mapa no disponible
-              </Text>
+              <Text style={[styles.mapUnavailableText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Mapa no disponible</Text>
             </View>
           )}
 
@@ -236,19 +182,11 @@ export default function MapScreen() {
                       <Text style={styles.bottomSheetPrice}>{formatPrice(selectedComplex.minPrice)}/h</Text>
                     </View>
                   </View>
-                  <TouchableOpacity
-                    style={styles.bottomSheetButton}
-                    onPress={() => handleComplexPress(selectedComplex.id)}
-                    activeOpacity={0.8}
-                  >
+                  <TouchableOpacity style={styles.bottomSheetButton} onPress={() => handleComplexPress(selectedComplex.id)} activeOpacity={0.8}>
                     <Text style={styles.bottomSheetButtonText}>Ver</Text>
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.bottomSheetClose}
-                  onPress={() => setSelectedComplexId(null)}
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity style={styles.bottomSheetClose} onPress={() => setSelectedComplexId(null)} activeOpacity={0.7}>
                   <Ionicons name="close" size={16} color={Colors.textTertiary} />
                 </TouchableOpacity>
               </GlassCard>
@@ -271,21 +209,13 @@ export default function MapScreen() {
             return (
               <Animated.View entering={FadeInDown.duration(300).delay(index * 50)}>
                 <GlassCard style={styles.listCard} padding={12}>
-                  <TouchableOpacity
-                    onPress={() => handleComplexPress(item.id)}
-                    activeOpacity={0.9}
-                    style={styles.listCardRow}
-                  >
+                  <TouchableOpacity onPress={() => handleComplexPress(item.id)} activeOpacity={0.9} style={styles.listCardRow}>
                     <Image source={{ uri: item.image }} style={styles.listImage} contentFit="cover" />
                     <View style={styles.listInfo}>
-                      <Text style={[styles.listName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
-                        {item.name}
-                      </Text>
+                      <Text style={[styles.listName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{item.name}</Text>
                       <View style={styles.listDistrictRow}>
                         <Ionicons name="location-outline" size={12} color={Colors.primary} />
-                        <Text style={[styles.listDistrict, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]} numberOfLines={1}>
-                          {item.district}
-                        </Text>
+                        <Text style={[styles.listDistrict, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]} numberOfLines={1}>{item.district}</Text>
                       </View>
                       <View style={styles.listBadgesRow}>
                         {courtTypes.slice(0, 2).map(type => (
@@ -317,9 +247,7 @@ export default function MapScreen() {
           ListEmptyComponent={
             <View style={styles.emptyList}>
               <Ionicons name="search-outline" size={40} color={Colors.textTertiary} />
-              <Text style={[styles.emptyListText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-                No se encontraron canchas
-              </Text>
+              <Text style={[styles.emptyListText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>No se encontraron canchas</Text>
             </View>
           }
         />
@@ -330,50 +258,27 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  authGuard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  authGuardText: { fontSize: 16, fontWeight: '600' },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
   headerTitle: { fontSize: 20, fontWeight: '800' },
   viewToggle: { flexDirection: 'row', backgroundColor: 'rgba(132,204,22,0.1)', borderRadius: 12, padding: 3 },
   toggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   toggleText: { fontSize: 13, fontWeight: '500', color: '#999' },
-
   searchContainer: { paddingHorizontal: 16, marginBottom: 8 },
   searchCard: {},
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchInput: { flex: 1, height: 40, fontSize: 14 },
-
   mapContainer: { flex: 1, position: 'relative' },
   map: { flex: 1 },
-
-  // Web map placeholder
   webMapPlaceholder: { flex: 1, position: 'relative', overflow: 'hidden' },
-  webMapGrid: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  webMapGridLineV: { position: 'absolute', top: 0, bottom: 0, width: 1 },
-  webMapGridLineH: { position: 'absolute', left: 0, right: 0, height: 1 },
   webMapPin: { position: 'absolute', alignItems: 'center' },
   webMapPinIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 4, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4 },
   webMapPinLabel: { fontSize: 9, fontWeight: '600', marginTop: 2, maxWidth: 80, textAlign: 'center' },
-  webMapLabel: { position: 'absolute', bottom: 16, left: 0, right: 0, alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.85)', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 12, marginHorizontal: 40 },
-  webMapLabelText: { fontSize: 11, fontWeight: '500' },
-
-  // Map unavailable fallback
   mapUnavailable: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   mapUnavailableText: { fontSize: 14, fontWeight: '500' },
-
   markerContainer: { alignItems: 'center' },
-  marker: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 4, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4 },
+  marker: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 4 },
   markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: Colors.primary, marginTop: -1 },
-
   centerBtn: { position: 'absolute', right: 16, bottom: 120, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
-
   bottomSheet: { position: 'absolute', bottom: 90, left: 16, right: 16 },
   bottomSheetCard: { position: 'relative' },
   bottomSheetRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -389,7 +294,6 @@ const styles = StyleSheet.create({
   bottomSheetButton: { backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
   bottomSheetButtonText: { color: '#111', fontWeight: '700', fontSize: 13 },
   bottomSheetClose: { position: 'absolute', top: 4, right: 4, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   listCount: { fontSize: 12, marginBottom: 10 },
   listCard: { marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },

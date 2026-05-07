@@ -8,13 +8,12 @@ import {
   TextInput,
   FlatList,
   Dimensions,
-  Animated as RNAnimated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown, useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useAppStore } from '../../lib/store';
 import {
@@ -26,14 +25,14 @@ import {
   getComplexById,
   getCourtTypeLabel,
 } from '../../lib/mock-data';
-import { Colors, Spacing, BorderRadius, FontSizes, Shadows } from '../../constants/theme';
+import { Colors } from '../../constants/theme';
 import { GlassCard } from '../../components/GlassCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 32;
 
 // ========================
-// Auth Screen (inline)
+// Auth Screen
 // ========================
 function AuthScreen() {
   const { isDarkMode, login } = useAppStore();
@@ -42,30 +41,9 @@ function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-
-  const particle1Y = useSharedValue(0);
-  const particle1X = useSharedValue(0);
-  const particle2Y = useSharedValue(0);
-  const particle2X = useSharedValue(0);
-  const particle3Y = useSharedValue(0);
-  const particle3X = useSharedValue(0);
-
-  useEffect(() => {
-    particle1Y.value = withRepeat(withTiming(-30, { duration: 3000 }), -1, true);
-    particle1X.value = withRepeat(withTiming(20, { duration: 4000 }), -1, true);
-    particle2Y.value = withRepeat(withTiming(25, { duration: 3500 }), -1, true);
-    particle2X.value = withRepeat(withTiming(-15, { duration: 4500 }), -1, true);
-    particle3Y.value = withRepeat(withTiming(-20, { duration: 2800 }), -1, true);
-    particle3X.value = withRepeat(withTiming(25, { duration: 3800 }), -1, true);
-  }, []);
-
-  const p1Style = useAnimatedStyle(() => ({ transform: [{ translateX: particle1X.value }, { translateY: particle1Y.value }] }));
-  const p2Style = useAnimatedStyle(() => ({ transform: [{ translateX: particle2X.value }, { translateY: particle2Y.value }] }));
-  const p3Style = useAnimatedStyle(() => ({ transform: [{ translateX: particle3X.value }, { translateY: particle3Y.value }] }));
 
   const handleAuth = () => {
     setLoading(true);
@@ -81,18 +59,18 @@ function AuthScreen() {
           avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
         });
         setShowWelcome(false);
-      }, 1800);
-    }, 1200);
+      }, 1500);
+    }, 1000);
   };
 
   if (showWelcome) {
     return (
       <View style={[styles.authContainer, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
         <Animated.View entering={FadeIn.duration(600)} style={styles.welcomeOverlay}>
-          <Animated.View entering={FadeIn.delay(200)} style={styles.welcomeCheck}>
-            <Ionicons name="checkmark-circle" size={80} color={Colors.primary} />
+          <Animated.View entering={FadeInDown.delay(200)} style={styles.welcomeCheck}>
+            <Ionicons name="checkmark-circle" size={72} color={Colors.primary} />
           </Animated.View>
-          <Animated.View entering={FadeInDown.delay(500)}>
+          <Animated.View entering={FadeInDown.delay(400)}>
             <Text style={[styles.welcomeTitle, { color: isDark ? Colors.textDark : Colors.text }]}>
               ¡Bienvenido!
             </Text>
@@ -107,17 +85,12 @@ function AuthScreen() {
 
   return (
     <View style={[styles.authContainer, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-      {/* Floating particles */}
-      <Animated.View style={[styles.particle, { top: '15%', left: '10%', width: 120, height: 120, backgroundColor: 'rgba(132,204,22,0.15)' }, p1Style]} />
-      <Animated.View style={[styles.particle, { top: '40%', right: '5%', width: 100, height: 100, backgroundColor: 'rgba(59,130,246,0.12)' }, p2Style]} />
-      <Animated.View style={[styles.particle, { bottom: '25%', left: '20%', width: 90, height: 90, backgroundColor: 'rgba(168,85,247,0.12)' }, p3Style]} />
-
       <ScrollView contentContainerStyle={styles.authScroll} keyboardShouldPersistTaps="handled">
-        <Animated.View entering={FadeIn.duration(500)} style={styles.authContent}>
+        <Animated.View entering={FadeIn.duration(400)} style={styles.authContent}>
           {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={[styles.logoIcon, { backgroundColor: Colors.primary }]}>
-              <Ionicons name="football" size={32} color="#111" />
+              <Ionicons name="football" size={28} color="#111" />
             </View>
           </View>
           <Text style={[styles.authTitle, { color: isDark ? Colors.textDark : Colors.text }]}>CanchaYa</Text>
@@ -192,34 +165,12 @@ function AuthScreen() {
               </View>
             </GlassCard>
 
-            {!isLogin && (
-              <GlassCard style={styles.inputCard}>
-                <View style={styles.inputRow}>
-                  <Ionicons name="lock-closed-outline" size={18} color={Colors.textTertiary} />
-                  <TextInput
-                    style={[styles.input, { color: isDark ? Colors.textDark : Colors.text }]}
-                    placeholder="Confirmar contraseña"
-                    placeholderTextColor={isDark ? Colors.textTertiaryDark : Colors.textTertiary}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    secureTextEntry={!showPassword}
-                  />
-                </View>
-              </GlassCard>
-            )}
-
-            <TouchableOpacity
-              style={styles.authButton}
-              onPress={handleAuth}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.authButton} onPress={handleAuth} disabled={loading} activeOpacity={0.8}>
               <Text style={styles.authButtonText}>
                 {loading ? 'Cargando...' : isLogin ? 'Iniciar Sesión' : 'Registrarse'}
               </Text>
             </TouchableOpacity>
 
-            {/* Google sign-in */}
             <TouchableOpacity style={[styles.googleButton, { borderColor: isDark ? Colors.borderDark : Colors.border }]} activeOpacity={0.8}>
               <Ionicons name="logo-google" size={20} color={isDark ? Colors.textDark : Colors.text} />
               <Text style={[styles.googleButtonText, { color: isDark ? Colors.textDark : Colors.text }]}>
@@ -244,29 +195,22 @@ function VenueCard({ complex, isFav, onToggleFav, onPress }: {
 }) {
   const { isDarkMode } = useAppStore();
   const isDark = isDarkMode;
-  const scale = useSharedValue(1);
-  const cardAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
   const courtTypes = Array.from(new Set(complex.courts.map((c: any) => c.type))) as string[];
 
   return (
-    <Animated.View entering={FadeInDown.duration(400).delay(100)} style={cardAnimStyle}>
+    <Animated.View entering={FadeInDown.duration(400).delay(100)}>
       <GlassCard padding={0} style={styles.venueCard}>
         <TouchableOpacity onPress={onPress} activeOpacity={0.95}>
-          {/* Image */}
           <View style={styles.venueImageContainer}>
             <Image source={{ uri: complex.image }} style={styles.venueImage} contentFit="cover" />
-            {/* Heart */}
             <TouchableOpacity style={styles.venueHeart} onPress={onToggleFav} activeOpacity={0.7}>
               <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={22} color={isFav ? Colors.heart : '#FFF'} />
             </TouchableOpacity>
-            {/* Rating */}
             <View style={[styles.venueRating, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.85)' }]}>
               <Ionicons name="star" size={12} color={Colors.star} />
               <Text style={[styles.venueRatingText, { color: isDark ? Colors.textDark : Colors.text }]}>{complex.rating}</Text>
             </View>
           </View>
-          {/* Content */}
           <View style={styles.venueContent}>
             <Text style={[styles.venueName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{complex.name}</Text>
             <View style={styles.venueDistrictRow}>
@@ -311,7 +255,6 @@ export default function HomeScreen() {
   const [selectedSport, setSelectedSport] = useState('todos');
   const [sortBy, setSortBy] = useState<'popular' | 'price' | 'near'>('popular');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   // Banner auto-scroll
   const bannerRef = useRef<FlatList>(null);
@@ -325,11 +268,8 @@ export default function HomeScreen() {
     return () => clearInterval(timer);
   }, [bannerIndex]);
 
-  // Filtered complexes
   const filteredComplexes = useMemo(() => {
     let result = [...mockComplexes];
-
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(c =>
@@ -338,29 +278,11 @@ export default function HomeScreen() {
         c.courts.some(court => getCourtTypeLabel(court.type).toLowerCase().includes(q))
       );
     }
-
-    // District
-    if (selectedDistrict !== 'Todos') {
-      result = result.filter(c => c.district === selectedDistrict);
-    }
-
-    // Sport
-    if (selectedSport !== 'todos') {
-      result = result.filter(c => c.courts.some(court => court.type === selectedSport));
-    }
-
-    // Favorites
-    if (showFavoritesOnly) {
-      result = result.filter(c => favorites.includes(c.id));
-    }
-
-    // Sort
-    if (sortBy === 'popular') {
-      result.sort((a, b) => b.rating - a.rating);
-    } else if (sortBy === 'price') {
-      result.sort((a, b) => a.minPrice - b.minPrice);
-    }
-
+    if (selectedDistrict !== 'Todos') result = result.filter(c => c.district === selectedDistrict);
+    if (selectedSport !== 'todos') result = result.filter(c => c.courts.some(court => court.type === selectedSport));
+    if (showFavoritesOnly) result = result.filter(c => favorites.includes(c.id));
+    if (sortBy === 'popular') result.sort((a, b) => b.rating - a.rating);
+    else if (sortBy === 'price') result.sort((a, b) => a.minPrice - b.minPrice);
     return result;
   }, [searchQuery, selectedDistrict, selectedSport, showFavoritesOnly, sortBy, favorites]);
 
@@ -373,9 +295,7 @@ export default function HomeScreen() {
     router.push('/detail');
   }, [selectComplex, router]);
 
-  if (!isAuthenticated) {
-    return <AuthScreen />;
-  }
+  if (!isAuthenticated) return <AuthScreen />;
 
   const firstName = user?.name?.split(' ')[0] || 'Usuario';
 
@@ -400,10 +320,7 @@ export default function HomeScreen() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.notificationBell}
-              onPress={() => {
-                setShowNotifications(!showNotifications);
-                if (!showNotifications) markAllNotificationsRead();
-              }}
+              onPress={() => markAllNotificationsRead()}
               activeOpacity={0.7}
             >
               <Ionicons name="notifications-outline" size={22} color={isDark ? Colors.textDark : Colors.text} />
@@ -447,7 +364,6 @@ export default function HomeScreen() {
                 </GlassCard>
               )}
             />
-            {/* Dots */}
             <View style={styles.bannerDots}>
               {promotionalBanners.map((_, i) => (
                 <View key={i} style={[styles.dot, i === bannerIndex && styles.dotActive]} />
@@ -507,7 +423,7 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
-        {/* Sport type pills (when filter open) */}
+        {/* Sport type pills */}
         {showFilters && (
           <Animated.View entering={FadeInDown.duration(300)}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsScroll}>
@@ -634,9 +550,8 @@ const styles = StyleSheet.create({
   authContainer: { flex: 1 },
   authScroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   authContent: { alignItems: 'center' },
-  particle: { position: 'absolute', borderRadius: 999 },
   logoContainer: { marginBottom: 12 },
-  logoIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
+  logoIcon: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
   authTitle: { fontSize: 28, fontWeight: '800', marginBottom: 4 },
   authSubtitle: { fontSize: 14, marginBottom: 24 },
   authTabContainer: { flexDirection: 'row', borderRadius: 12, padding: 4, marginBottom: 24, width: '100%' },
@@ -711,7 +626,7 @@ const styles = StyleSheet.create({
   sortBtnTextActive: { color: Colors.primary, fontWeight: '700' },
 
   // Fav toggle
-  favToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, backgroundColor: 'transparent', alignSelf: 'flex-start', marginBottom: 12 },
+  favToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, alignSelf: 'flex-start', marginBottom: 12 },
   favToggleActive: { borderColor: Colors.heart, backgroundColor: 'rgba(239,68,68,0.08)' },
   favToggleText: { fontSize: 13, fontWeight: '600', color: '#666' },
 

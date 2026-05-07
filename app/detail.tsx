@@ -5,14 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { useAppStore } from '../lib/store';
 import {
@@ -22,7 +21,7 @@ import {
   getReviewsByComplexId,
   getAverageRating,
 } from '../lib/mock-data';
-import { Colors, Spacing, BorderRadius, FontSizes, Shadows } from '../constants/theme';
+import { Colors } from '../constants/theme';
 import { GlassCard } from '../components/GlassCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -75,8 +74,6 @@ export default function DetailScreen() {
         <View style={styles.heroContainer}>
           <Image source={{ uri: allImages[activeImageIndex] }} style={styles.heroImage} contentFit="cover" />
           <View style={styles.heroGradient} />
-
-          {/* Back button */}
           <TouchableOpacity
             style={[styles.heroButton, { left: 16, top: (insets.top || 12) + 4 }]}
             onPress={() => router.back()}
@@ -84,8 +81,6 @@ export default function DetailScreen() {
           >
             <Ionicons name="arrow-back" size={20} color="#FFF" />
           </TouchableOpacity>
-
-          {/* Heart button */}
           <TouchableOpacity
             style={[styles.heroButton, { right: 16, top: (insets.top || 12) + 4 }]}
             onPress={() => toggleFavorite(complex.id)}
@@ -93,31 +88,26 @@ export default function DetailScreen() {
           >
             <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={20} color={isFav ? Colors.heart : '#FFF'} />
           </TouchableOpacity>
-
-          {/* Image counter */}
           <View style={styles.imageCounter}>
             <Text style={styles.imageCounterText}>{activeImageIndex + 1}/{allImages.length}</Text>
           </View>
         </View>
 
-        {/* Image gallery thumbnails */}
+        {/* Gallery thumbnails */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
           {allImages.map((img, i) => (
             <TouchableOpacity
               key={i}
               onPress={() => setActiveImageIndex(i)}
               activeOpacity={0.8}
-              style={[
-                styles.galleryThumb,
-                activeImageIndex === i && { borderColor: Colors.primary, borderWidth: 2 },
-              ]}
+              style={[styles.galleryThumb, activeImageIndex === i && { borderColor: Colors.primary, borderWidth: 2 }]}
             >
               <Image source={{ uri: img }} style={styles.galleryImage} contentFit="cover" />
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Complex info */}
+        {/* Info */}
         <Animated.View entering={FadeInDown.duration(400)}>
           <View style={styles.infoSection}>
             <Text style={[styles.complexName, { color: isDark ? Colors.textDark : Colors.text }]}>{complex.name}</Text>
@@ -137,9 +127,7 @@ export default function DetailScreen() {
             </View>
             <View style={styles.hoursRow}>
               <Ionicons name="time-outline" size={14} color={Colors.primary} />
-              <Text style={[styles.hoursText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-                {complex.openHour}:00 - {complex.closeHour}:00
-              </Text>
+              <Text style={[styles.hoursText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{complex.openHour}:00 - {complex.closeHour}:00</Text>
             </View>
           </View>
         </Animated.View>
@@ -181,11 +169,7 @@ export default function DetailScreen() {
                 </View>
                 <View style={styles.courtBottom}>
                   <Text style={styles.courtPrice}>{formatPrice(court.pricePerHour)}/h</Text>
-                  <TouchableOpacity
-                    style={styles.reserveButton}
-                    onPress={() => handleReserve(court.id)}
-                    activeOpacity={0.8}
-                  >
+                  <TouchableOpacity style={styles.reserveButton} onPress={() => handleReserve(court.id)} activeOpacity={0.8}>
                     <Text style={styles.reserveButtonText}>Reservar</Text>
                   </TouchableOpacity>
                 </View>
@@ -199,14 +183,6 @@ export default function DetailScreen() {
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Ubicación</Text>
           <GlassCard style={styles.mapPreviewCard} padding={0}>
             <View style={styles.mapPreviewPlaceholder}>
-              <View style={styles.mapGrid}>
-                {[...Array(8)].map((_, i) => (
-                  <View key={i} style={[styles.mapGridLine, { left: `${(i + 1) * 11}%` }]} />
-                ))}
-                {[...Array(6)].map((_, i) => (
-                  <View key={`h${i}`} style={[styles.mapGridLineH, { top: `${(i + 1) * 14}%` }]} />
-                ))}
-              </View>
               <View style={styles.mapPinContainer}>
                 <Ionicons name="location" size={28} color={Colors.primary} />
               </View>
@@ -217,7 +193,7 @@ export default function DetailScreen() {
           </GlassCard>
         </Animated.View>
 
-        {/* Reviews Section */}
+        {/* Reviews */}
         <Animated.View entering={FadeInDown.duration(400).delay(350)}>
           <View style={styles.reviewsHeader}>
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Reseñas</Text>
@@ -267,21 +243,15 @@ const styles = StyleSheet.create({
   backBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: Colors.primary, borderRadius: 8, marginTop: 8 },
   backBtnText: { color: '#111', fontWeight: '700' },
   scrollContent: { paddingBottom: 40 },
-
-  // Hero
   heroContainer: { position: 'relative', height: 260 },
   heroImage: { width: '100%', height: '100%' },
   heroGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, backgroundColor: 'rgba(0,0,0,0.3)' },
   heroButton: { position: 'absolute', width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
   imageCounter: { position: 'absolute', bottom: 12, left: 0, right: 0, alignItems: 'center' },
   imageCounterText: { color: '#FFF', fontSize: 12, fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
-
-  // Gallery
   galleryScroll: { paddingHorizontal: 16, marginTop: -24, marginBottom: 8 },
   galleryThumb: { width: 56, height: 56, borderRadius: 10, overflow: 'hidden', marginRight: 8, borderWidth: 2, borderColor: 'transparent' },
   galleryImage: { width: '100%', height: '100%' },
-
-  // Info
   infoSection: { paddingHorizontal: 16, marginBottom: 16, gap: 6 },
   complexName: { fontSize: 22, fontWeight: '800' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
@@ -293,18 +263,12 @@ const styles = StyleSheet.create({
   addressText: { fontSize: 12 },
   hoursRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   hoursText: { fontSize: 13 },
-
-  // Section title
   sectionTitle: { fontSize: 17, fontWeight: '700', marginBottom: 10, paddingHorizontal: 16 },
-
-  // Amenities
   amenitiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, marginBottom: 16 },
   amenityCard: { width: (SCREEN_WIDTH - 40) / 2 - 4 },
   amenityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   amenityIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   amenityText: { fontSize: 12, fontWeight: '600', flex: 1 },
-
-  // Courts
   courtCard: { marginHorizontal: 16, marginBottom: 10, flexDirection: 'row', gap: 10, overflow: 'hidden' },
   courtImage: { width: 80, height: 90, borderRadius: 8 },
   courtInfo: { flex: 1, gap: 4 },
@@ -319,18 +283,11 @@ const styles = StyleSheet.create({
   courtPrice: { fontSize: 16, fontWeight: '800', color: Colors.primary },
   reserveButton: { backgroundColor: Colors.primary, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
   reserveButtonText: { color: '#111', fontWeight: '700', fontSize: 12 },
-
-  // Map preview
   mapPreviewCard: { marginHorizontal: 16, marginBottom: 16, overflow: 'hidden' },
-  mapPreviewPlaceholder: { height: 140, backgroundColor: '#E8F5E9', position: 'relative', overflow: 'hidden' },
-  mapGrid: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  mapGridLine: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: 'rgba(132,204,22,0.2)' },
-  mapGridLineH: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(132,204,22,0.2)' },
-  mapPinContainer: { position: 'absolute', top: '40%', left: '50%', marginLeft: -14, marginTop: -28 },
+  mapPreviewPlaceholder: { height: 140, backgroundColor: '#E8F5E9', position: 'relative', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  mapPinContainer: { alignItems: 'center' },
   mapAddressOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 6, paddingHorizontal: 10 },
   mapAddressText: { color: '#FFF', fontSize: 11, fontWeight: '500' },
-
-  // Reviews
   reviewsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingRight: 16 },
   avgRatingBox: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   avgRatingText: { fontSize: 14, fontWeight: '800', color: Colors.star },

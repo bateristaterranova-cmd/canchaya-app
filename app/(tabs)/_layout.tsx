@@ -1,49 +1,11 @@
-import { Tabs, useRouter, usePathname } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { BottomNav } from '../../components/BottomNav';
-import { useAppStore, TabType } from '../../lib/store';
+import { useAppStore } from '../../lib/store';
 import { View } from 'react-native';
-import { useEffect, useRef } from 'react';
 import { Colors } from '../../constants/theme';
 
-const tabRouteMap: Record<TabType, string> = {
-  home: '/(tabs)',
-  activity: '/(tabs)/activity',
-  map: '/(tabs)/map',
-  profile: '/(tabs)/profile',
-};
-
-const pathnameToTab: Record<string, TabType> = {
-  '/': 'home',
-  '/activity': 'activity',
-  '/map': 'map',
-  '/profile': 'profile',
-};
-
 export default function TabLayout() {
-  const { isDarkMode, activeTab, setActiveTab } = useAppStore();
-  const router = useRouter();
-  const pathname = usePathname();
-  const isNavigatingRef = useRef(false);
-
-  // Sync pathname → store (handles back button, deep links)
-  useEffect(() => {
-    const tab = pathnameToTab[pathname];
-    if (tab && tab !== activeTab) {
-      isNavigatingRef.current = true;
-      setActiveTab(tab);
-      // Reset flag after a tick
-      setTimeout(() => { isNavigatingRef.current = false; }, 50);
-    }
-  }, [pathname]);
-
-  // Sync store → router (handles BottomNav taps)
-  useEffect(() => {
-    if (isNavigatingRef.current) return;
-    const targetRoute = tabRouteMap[activeTab];
-    if (targetRoute) {
-      router.navigate(targetRoute);
-    }
-  }, [activeTab]);
+  const { isDarkMode } = useAppStore();
 
   return (
     <View style={{ flex: 1, backgroundColor: isDarkMode ? Colors.backgroundDark : Colors.background }}>
