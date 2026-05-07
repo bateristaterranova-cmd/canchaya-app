@@ -1,0 +1,87 @@
+name: EAS Build
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'mobile/app.json'
+
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Perfil de build (development, preview, production)'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: 'Plataforma de destino'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - all
+
+jobs:
+  build:
+    name: 🔨 Construir app con EAS
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: 📥 Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🔧 Instalar Expo CLI
+        run: npm install -g expo-cli@latest
+
+      - name: 🔧 Instalar EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: 🔄 Iniciar sesión en Expo
+        run: eas whoami
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🔨 Construir APK de desarrollo (auto-trigger)
+        if: github.event_name == 'push'
+        run: eas build --platform android --profile preview --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🔨 Construir app (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        run: eas build --platform ${{ github.event.inputs.platform }} --profile ${{ github.event.inputs.profile }} --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: ✅ Resumen del build
+        run: |
+          echo "========================================="
+          echo "  🎉 Build completado"
+          echo "========================================="
+          PROFILE="${{ github.event_name == 'push' && 'preview' || github.event.inputs.profile }}"
+          PLATFORM="${{ github.event_name == 'push' && 'android' || github.event.inputs.platform }}"
+          echo "  Perfil: $PROFILE"
+          echo "  Plataforma: $PLATFORM"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  Trigger: ${{ github.event_name }}"
+          echo "========================================="
