@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../lib/store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Shadows } from '../constants/theme';
-import Animated, { useAnimatedStyle, withSpring, withTiming, useSharedValue, withRepeat } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withTiming, useSharedValue, withRepeat } from 'react-native-reanimated';
 import { useEffect } from 'react';
 
 const { width } = Dimensions.get('window');
@@ -19,9 +19,9 @@ const tabs = [
 export function BottomNav() {
   const { activeTab, setActiveTab, isDarkMode } = useAppStore();
   const insets = useSafeAreaInsets();
-  
+
   const isDark = isDarkMode;
-  
+
   return (
     <View
       style={[
@@ -37,11 +37,18 @@ export function BottomNav() {
       <View style={styles.navInner}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          
+
           if (tab.isCenter) {
-            return <CenterMapButton key={tab.id} isActive={isActive} onPress={() => setActiveTab(tab.id)} />;
+            return (
+              <CenterMapButton
+                key={tab.id}
+                isActive={isActive}
+                isDark={isDark}
+                onPress={() => setActiveTab(tab.id)}
+              />
+            );
           }
-          
+
           return (
             <TouchableOpacity
               key={tab.id}
@@ -49,27 +56,25 @@ export function BottomNav() {
               onPress={() => setActiveTab(tab.id)}
               activeOpacity={0.7}
             >
-              <Animated.View style={[styles.tabContent, isActive && styles.activeTabContent]}>
+              <View style={styles.tabContent}>
                 <Ionicons
-                  name={isActive ? tab.activeIcon as any : tab.icon as any}
+                  name={isActive ? (tab.activeIcon as any) : (tab.icon as any)}
                   size={isActive ? 26 : 22}
-                  color={isActive ? Colors.primary : (isDark ? Colors.textTertiaryDark : Colors.textTertiary)}
+                  color={isActive ? Colors.primary : isDark ? Colors.textTertiaryDark : Colors.textTertiary}
                 />
                 <Text
                   style={[
                     styles.tabLabel,
                     {
-                      color: isActive ? Colors.primary : (isDark ? Colors.textTertiaryDark : Colors.textTertiary),
+                      color: isActive ? Colors.primary : isDark ? Colors.textTertiaryDark : Colors.textTertiary,
                       fontWeight: isActive ? '700' : '500',
                     },
                   ]}
                 >
                   {tab.label}
                 </Text>
-                {isActive && (
-                  <View style={styles.activeIndicator} />
-                )}
-              </Animated.View>
+                {isActive && <View style={styles.activeIndicator} />}
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -78,53 +83,70 @@ export function BottomNav() {
   );
 }
 
-function CenterMapButton({ isActive, onPress }: { isActive: boolean; onPress: () => void }) {
-  const scale = useSharedValue(1);
-  const glowOpacity = useSharedValue(0.3);
-  
+function CenterMapButton({
+  isActive,
+  isDark,
+  onPress,
+}: {
+  isActive: boolean;
+  isDark: boolean;
+  onPress: () => void;
+}) {
+  const glowOpacity = useSharedValue(0.25);
+  const glowScale = useSharedValue(1);
+
   useEffect(() => {
     glowOpacity.value = withRepeat(
-      withTiming(isActive ? 0.35 : 0.15, { duration: 1500 }),
+      withTiming(isActive ? 0.4 : 0.15, { duration: 1500 }),
+      -1,
+      true
+    );
+    glowScale.value = withRepeat(
+      withTiming(isActive ? 1.15 : 1.08, { duration: 1500 }),
       -1,
       true
     );
   }, [isActive]);
-  
+
   const glowStyle = useAnimatedStyle(() => ({
     position: 'absolute' as const,
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 32,
+    top: -6,
+    left: -6,
+    right: -6,
+    bottom: -6,
+    borderRadius: 28,
     backgroundColor: Colors.primary,
     opacity: glowOpacity.value,
+    transform: [{ scale: glowScale.value }],
   }));
-  
+
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
       style={styles.centerButtonContainer}
     >
-      <Animated.View style={glowStyle} />
-      <View
-        style={[
-          styles.centerButton,
-          {
-            backgroundColor: Colors.primary,
-          },
-        ]}
-      >
-        <Ionicons name="location" size={22} color="#111" />
+      {/* Glow ring */}
+      <View style={styles.centerCircleWrapper}>
+        <Animated.View style={glowStyle} />
+        <View
+          style={[
+            styles.centerButton,
+            {
+              backgroundColor: Colors.primary,
+            },
+          ]}
+        >
+          <Ionicons name="location" size={22} color="#111111" />
+        </View>
       </View>
       <Text
         style={[
           styles.tabLabel,
           {
-            color: isActive ? Colors.primary : (Colors.textTertiary),
+            color: isActive ? Colors.primary : isDark ? Colors.textTertiaryDark : Colors.textTertiary,
             fontWeight: isActive ? '700' : '500',
-            marginTop: 2,
+            marginTop: 4,
           },
         ]}
       >
@@ -163,18 +185,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  activeTabContent: {
-    transform: [{ translateY: -2 }],
-  },
   tabLabel: {
     fontSize: 10,
-    lineHeight: 12,
+    lineHeight: 14,
   },
   activeIndicator: {
     position: 'absolute',
     bottom: -6,
     width: 20,
-    height: 3,
+    height: 4,
     borderRadius: 2,
     backgroundColor: Colors.primary,
     shadowColor: Colors.primary,
@@ -189,14 +208,21 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     paddingBottom: 4,
   },
-  centerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  centerCircleWrapper: {
+    position: 'relative',
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -12,
-    borderWidth: 2,
+    marginTop: -20,
+  },
+  centerButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
     borderColor: '#FFFFFF',
     elevation: 8,
     shadowColor: Colors.primary,
