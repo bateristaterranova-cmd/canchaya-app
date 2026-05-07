@@ -66,8 +66,8 @@ export const useAppStore = create<AppState>()((set) => ({
   selectedTimeSlot: null as string | null,
   
   // Auth initial state
-  isAuthenticated: true,
-  user: mockUser,
+  isAuthenticated: false,
+  user: null,
   
   // Favorites & Notifications
   favorites: [] as string[],
