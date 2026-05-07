@@ -87,7 +87,7 @@ export default function ActivityScreen() {
             Próximas
           </Text>
           {upcoming.length > 0 && (
-            <View style={[styles.tabBadge, activeTab === 'upcoming' ? { backgroundColor: 'rgba(0,0,0,0.2)' } : { backgroundColor: Colors.primaryBg }]}>
+            <View style={[styles.tabBadge, activeTab === 'upcoming' ? { backgroundColor: 'rgba(0,0,0,0.2)' } : { backgroundColor: 'rgba(132, 204, 22, 0.12)', borderWidth: 1, borderColor: 'rgba(132, 204, 22, 0.2)' }]}>
               <Text style={[styles.tabBadgeText, activeTab === 'upcoming' && { color: '#111' }]}>{upcoming.length}</Text>
             </View>
           )}
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10 },
   tabText: { fontSize: 14, fontWeight: '600', color: '#999' },
   tabBadge: { paddingHorizontal: 7, paddingVertical: 1, borderRadius: 10 },
-  tabBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.primary },
+  tabBadgeText: { fontSize: 11, fontWeight: '700', color: '#4D7C0F' },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
 

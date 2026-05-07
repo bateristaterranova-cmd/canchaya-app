@@ -258,7 +258,7 @@ function VenueCard({ complex, isFav, onToggleFav, onPress }: {
             <Image source={{ uri: complex.image }} style={styles.venueImage} contentFit="cover" />
             {/* Heart */}
             <TouchableOpacity style={styles.venueHeart} onPress={onToggleFav} activeOpacity={0.7}>
-              <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={18} color={isFav ? Colors.heart : '#FFF'} />
+              <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={22} color={isFav ? Colors.heart : '#FFF'} />
             </TouchableOpacity>
             {/* Rating */}
             <View style={[styles.venueRating, { backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.85)' }]}>
@@ -275,16 +275,17 @@ function VenueCard({ complex, isFav, onToggleFav, onPress }: {
             </View>
             <View style={styles.venueBadgesRow}>
               {courtTypes.map((type: string) => (
-                <View key={type} style={[styles.courtBadge, { backgroundColor: Colors.primaryBg }]}>
+                <View key={type} style={styles.courtBadge}>
                   <Text style={styles.courtBadgeText}>{getCourtTypeLabel(type)}</Text>
                 </View>
               ))}
-              <View style={{ flex: 1 }} />
+            </View>
+            <View style={styles.venueBottomRow}>
+              <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+                <Text style={styles.venueLink}>Ver cancha →</Text>
+              </TouchableOpacity>
               <Text style={styles.venuePrice}>{formatPrice(complex.minPrice)}/h</Text>
             </View>
-            <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-              <Text style={styles.venueLink}>Ver cancha →</Text>
-            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </GlassCard>
@@ -535,7 +536,7 @@ export default function HomeScreen() {
         {recentlyViewedComplexes.length > 0 && (
           <Animated.View entering={FadeInDown.duration(400)}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Vistos recientemente</Text>
+              <Text style={[styles.sectionTitleSecondary, { color: isDark ? Colors.textDark : Colors.text }]}>Vistos recientemente</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentlyScroll}>
               {recentlyViewedComplexes.map((complex: any) => (
@@ -558,6 +559,7 @@ export default function HomeScreen() {
         {/* Section title + sort */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
+            <View style={styles.sectionTitleAccent} />
             <Ionicons name="location" size={16} color={Colors.primary} />
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Canchas cerca de ti</Text>
           </View>
@@ -567,9 +569,9 @@ export default function HomeScreen() {
                 key={s}
                 onPress={() => setSortBy(s)}
                 activeOpacity={0.7}
-                style={[styles.sortBtn, sortBy === s && { backgroundColor: Colors.primaryBg }]}
+                style={[styles.sortBtn, sortBy === s && styles.sortBtnActive]}
               >
-                <Text style={[styles.sortBtnText, sortBy === s && { color: Colors.primary, fontWeight: '700' }]}>
+                <Text style={[styles.sortBtnText, sortBy === s && styles.sortBtnTextActive]}>
                   {s === 'popular' ? 'Popular' : s === 'price' ? 'Precio' : 'Cerca'}
                 </Text>
               </TouchableOpacity>
@@ -579,7 +581,7 @@ export default function HomeScreen() {
 
         {/* Favorites toggle */}
         <TouchableOpacity
-          style={[styles.favToggle, showFavoritesOnly && { backgroundColor: 'rgba(239,68,68,0.12)', borderColor: Colors.heart }]}
+          style={[styles.favToggle, { borderColor: isDark ? Colors.borderDark : Colors.border }, showFavoritesOnly && styles.favToggleActive]}
           onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
           activeOpacity={0.7}
         >
@@ -626,7 +628,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16, paddingBottom: 100 },
+  scrollContent: { paddingHorizontal: 16, paddingBottom: 120 },
 
   // Auth
   authContainer: { flex: 1 },
@@ -682,7 +684,7 @@ const styles = StyleSheet.create({
   // Search
   searchCard: { marginBottom: 12 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  searchInput: { flex: 1, height: 40, fontSize: 14 },
+  searchInput: { flex: 1, height: 44, fontSize: 15 },
 
   // Pills
   pillsScroll: { marginBottom: 12, marginHorizontal: -16, paddingHorizontal: 16 },
@@ -690,29 +692,34 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 13, fontWeight: '500', color: '#666' },
 
   // Recently viewed
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 8 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 12 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle: { fontSize: 17, fontWeight: '700' },
+  sectionTitle: { fontSize: 18, fontWeight: '800' },
+  sectionTitleSecondary: { fontSize: 15, fontWeight: '600' },
+  sectionTitleAccent: { width: 3, height: 18, borderRadius: 2, backgroundColor: Colors.primary, marginRight: 2 },
   recentlyScroll: { marginHorizontal: -16, paddingHorizontal: 16, marginBottom: 8 },
-  recentlyCard: { width: 120, marginRight: 10 },
+  recentlyCard: { width: 140, marginRight: 10 },
   recentlyImage: { width: '100%', height: 70, borderRadius: 8, marginBottom: 6 },
-  recentlyName: { fontSize: 11, fontWeight: '600' },
-  recentlyPrice: { fontSize: 11, fontWeight: '700', color: Colors.primary, marginTop: 2 },
+  recentlyName: { fontSize: 12, fontWeight: '600' },
+  recentlyPrice: { fontSize: 11, fontWeight: '600', color: Colors.primary, marginTop: 2 },
 
   // Sort
   sortRow: { flexDirection: 'row', gap: 4 },
-  sortBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  sortBtn: { paddingHorizontal: 10, paddingVertical: 6, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  sortBtnActive: { borderBottomColor: Colors.primary },
   sortBtnText: { fontSize: 12, fontWeight: '500', color: '#999' },
+  sortBtnTextActive: { color: Colors.primary, fontWeight: '700' },
 
   // Fav toggle
-  favToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'transparent', backgroundColor: 'rgba(132,204,22,0.08)', alignSelf: 'flex-start', marginBottom: 12 },
+  favToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, backgroundColor: 'transparent', alignSelf: 'flex-start', marginBottom: 12 },
+  favToggleActive: { borderColor: Colors.heart, backgroundColor: 'rgba(239,68,68,0.08)' },
   favToggleText: { fontSize: 13, fontWeight: '600', color: '#666' },
 
   // Venue card
-  venueCard: { marginBottom: 14, overflow: 'hidden' },
+  venueCard: { marginBottom: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   venueImageContainer: { position: 'relative', width: '100%', aspectRatio: 16 / 9 },
   venueImage: { width: '100%', height: '100%', borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  venueHeart: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
+  venueHeart: { position: 'absolute', top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
   venueRating: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   venueRatingText: { fontSize: 12, fontWeight: '700' },
   venueContent: { padding: 12 },
@@ -720,10 +727,11 @@ const styles = StyleSheet.create({
   venueDistrictRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 8 },
   venueDistrict: { fontSize: 12 },
   venueBadgesRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
-  courtBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  courtBadgeText: { fontSize: 11, fontWeight: '600', color: Colors.primaryDark },
+  courtBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: 'rgba(132, 204, 22, 0.12)', borderWidth: 1, borderColor: 'rgba(132, 204, 22, 0.2)' },
+  courtBadgeText: { fontSize: 12, fontWeight: '600', color: '#4D7C0F' },
   venuePrice: { fontSize: 14, fontWeight: '800', color: Colors.primary },
-  venueLink: { fontSize: 13, fontWeight: '700', color: Colors.primary },
+  venueLink: { fontSize: 14, fontWeight: '700', color: Colors.primary, letterSpacing: 0.3 },
+  venueBottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
   // Empty
   emptyState: { alignItems: 'center', paddingVertical: 40 },

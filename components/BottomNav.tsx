@@ -84,7 +84,7 @@ function CenterMapButton({ isActive, onPress }: { isActive: boolean; onPress: ()
   
   useEffect(() => {
     glowOpacity.value = withRepeat(
-      withTiming(isActive ? 0.6 : 0.3, { duration: 1500 }),
+      withTiming(isActive ? 0.35 : 0.15, { duration: 1500 }),
       -1,
       true
     );
@@ -190,13 +190,13 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   centerButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -16,
-    borderWidth: 3,
+    marginTop: -12,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
     elevation: 8,
     shadowColor: Colors.primary,

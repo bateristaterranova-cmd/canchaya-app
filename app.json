@@ -17,7 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.canchaya.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "CanchaYa necesita acceso a tu ubicación para mostrarte canchas deportivas cercanas."
+        "NSLocationWhenInUseUsageDescription": "CanchaYa necesita acceso a tu ubicaci\u00f3n para mostrarte canchas deportivas cercanas."
       }
     },
     "android": {
@@ -29,7 +29,9 @@
       "package": "com.canchaya.app",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "versionCode": 1
     },
@@ -41,20 +43,22 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "CanchaYa necesita acceso a tu ubicación para mostrarte canchas deportivas cercanas."
+          "locationWhenInUsePermission": "CanchaYa necesita acceso a tu ubicaci\u00f3n para mostrarte canchas deportivas cercanas."
         }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "PLACEHOLDER_RUN_EAS_INIT"
-      }
+        "projectId": "6163b54f-1ef7-4d21-bde7-47e7c8070861"
+      },
+      "router": {}
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/PLACEHOLDER_RUN_EAS_INIT"
-    }
+      "url": "https://u.expo.dev/6163b54f-1ef7-4d21-bde7-47e7c8070861"
+    },
+    "owner": "leohr09"
   }
 }

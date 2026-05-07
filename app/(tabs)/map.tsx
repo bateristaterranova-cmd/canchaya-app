@@ -289,7 +289,7 @@ export default function MapScreen() {
                       </View>
                       <View style={styles.listBadgesRow}>
                         {courtTypes.slice(0, 2).map(type => (
-                          <View key={type} style={[styles.listBadge, { backgroundColor: Colors.primaryBg }]}>
+                          <View key={type} style={styles.listBadge}>
                             <Text style={styles.listBadgeText}>{getCourtTypeLabel(type)}</Text>
                           </View>
                         ))}
@@ -305,7 +305,7 @@ export default function MapScreen() {
                     <TouchableOpacity onPress={() => toggleFavorite(item.id)} style={styles.listFavBtn} activeOpacity={0.7}>
                       <Ionicons
                         name={favorites.includes(item.id) ? 'heart' : 'heart-outline'}
-                        size={18}
+                        size={22}
                         color={favorites.includes(item.id) ? Colors.heart : Colors.textTertiary}
                       />
                     </TouchableOpacity>
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
 
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   listCount: { fontSize: 12, marginBottom: 10 },
-  listCard: { marginBottom: 10 },
+  listCard: { marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   listCardRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   listImage: { width: 70, height: 70, borderRadius: 10 },
   listInfo: { flex: 1, gap: 3 },
@@ -400,13 +400,13 @@ const styles = StyleSheet.create({
   listDistrictRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   listDistrict: { fontSize: 12 },
   listBadgesRow: { flexDirection: 'row', gap: 4 },
-  listBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  listBadgeText: { fontSize: 10, fontWeight: '600', color: Colors.primaryDark },
+  listBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: 'rgba(132, 204, 22, 0.12)', borderWidth: 1, borderColor: 'rgba(132, 204, 22, 0.2)' },
+  listBadgeText: { fontSize: 10, fontWeight: '600', color: '#4D7C0F' },
   listMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   listRating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   listRatingText: { fontSize: 12, fontWeight: '700', color: Colors.star },
   listPrice: { fontSize: 14, fontWeight: '800', color: Colors.primary },
-  listFavBtn: { padding: 4 },
+  listFavBtn: { padding: 8 },
   emptyList: { alignItems: 'center', paddingVertical: 40, gap: 8 },
   emptyListText: { fontSize: 14 },
 });
