@@ -4,7 +4,7 @@ import { useAppStore } from '../../lib/store';
 import { Colors } from '../../constants/theme';
 
 export default function TabLayout() {
-  const { isDarkMode } = useAppStore();
+  const { isDarkMode, isAuthenticated } = useAppStore();
 
   return (
     <Tabs
@@ -13,7 +13,7 @@ export default function TabLayout() {
         tabBarStyle: { display: 'none' },
         animation: 'none',
       }}
-      tabBar={() => <BottomNav />}
+      tabBar={() => isAuthenticated ? <BottomNav /> : null}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="map" />

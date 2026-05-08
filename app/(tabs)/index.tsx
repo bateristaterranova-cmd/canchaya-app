@@ -8,6 +8,9 @@ import {
   TextInput,
   FlatList,
   Dimensions,
+  Modal,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,12 +27,16 @@ import {
   formatPrice,
   getComplexById,
   getCourtTypeLabel,
+  mockNotifications,
+  formatNotificationTime,
 } from '../../lib/mock-data';
 import { Colors } from '../../constants/theme';
 import { GlassCard } from '../../components/GlassCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_WIDTH = SCREEN_WIDTH - 32;
+
+const LOGIN_BG = 'https://images.unsplash.com/photo-1546608235-3310a2494cdf?q=80&w=938&auto=format&fit=crop';
 
 // ========================
 // Auth Screen
@@ -59,124 +66,128 @@ function AuthScreen() {
           avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
         });
         setShowWelcome(false);
-      }, 1500);
+      }, 1800);
     }, 1000);
   }, [name, email, login]);
 
-  if (showWelcome) {
-    return (
-      <View style={[styles.authContainer, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-        <Animated.View entering={FadeIn.duration(600)} style={styles.welcomeOverlay}>
-          <Animated.View entering={FadeInDown.delay(200)} style={styles.welcomeCheck}>
-            <Ionicons name="checkmark-circle" size={72} color={Colors.primary} />
-          </Animated.View>
-          <Animated.View entering={FadeInDown.delay(400)}>
-            <Text style={[styles.welcomeTitle, { color: isDark ? Colors.textDark : Colors.text }]}>
-              ¡Bienvenido!
-            </Text>
-            <Text style={[styles.welcomeSub, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-              {name || 'Carlos Mendoza'}
-            </Text>
-          </Animated.View>
-        </Animated.View>
-      </View>
-    );
-  }
-
   return (
-    <View style={[styles.authContainer, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
+    <View style={styles.authContainer}>
+      {/* Background Image */}
+      <Image source={{ uri: LOGIN_BG }} style={styles.authBgImage} contentFit="cover" />
+      {/* Dark overlay for readability */}
+      <View style={styles.authBgOverlay} />
+
+      {/* Welcome Animation Overlay - on top of login */}
+      {showWelcome && (
+        <View style={styles.welcomeBackdrop}>
+          <Animated.View entering={FadeIn.duration(500)} style={styles.welcomeContent}>
+            <Animated.View entering={FadeInDown.delay(200)} style={styles.welcomeCheckCircle}>
+              <Ionicons name="checkmark-circle" size={72} color={Colors.primary} />
+            </Animated.View>
+            <Animated.View entering={FadeInDown.delay(500)}>
+              <Text style={styles.welcomeTitle}>¡Bienvenido!</Text>
+              <Text style={styles.welcomeSub}>{name || 'Carlos Mendoza'}</Text>
+            </Animated.View>
+          </Animated.View>
+        </View>
+      )}
+
+      {/* Login Form */}
       <ScrollView contentContainerStyle={styles.authScroll} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeIn.duration(400)} style={styles.authContent}>
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <View style={[styles.logoIcon, { backgroundColor: Colors.primary }]}>
-              <Ionicons name="football" size={28} color="#111" />
+            <View style={[styles.logoGlass, Platform.OS === 'web' && { backdropFilter: 'blur(30px) saturate(200%)', WebkitBackdropFilter: 'blur(30px) saturate(200%)' }] as any}>
+              <Ionicons name="football" size={32} color={Colors.primary} />
             </View>
           </View>
-          <Text style={[styles.authTitle, { color: isDark ? Colors.textDark : Colors.text }]}>CanchaYa</Text>
-          <Text style={[styles.authSubtitle, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
+          <Text style={styles.authTitle}>CanchaYa</Text>
+          <Text style={styles.authSubtitle}>
             Tu cancha, tu partida
           </Text>
 
-          {/* Tab toggle */}
-          <View style={[styles.authTabContainer, { backgroundColor: isDark ? Colors.surfaceDark : Colors.surface }]}>
-            <TouchableOpacity
-              style={[styles.authTab, isLogin && { backgroundColor: Colors.primary }]}
-              onPress={() => setIsLogin(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.authTabText, isLogin && { color: '#111', fontWeight: '700' }]}>Iniciar Sesión</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.authTab, !isLogin && { backgroundColor: Colors.primary }]}
-              onPress={() => setIsLogin(false)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.authTabText, !isLogin && { color: '#111', fontWeight: '700' }]}>Registrarse</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Single Glassmorphism Card wrapping everything */}
+          <View style={[styles.authGlassCard, Platform.OS === 'web' && { backdropFilter: 'blur(40px) saturate(200%)', WebkitBackdropFilter: 'blur(40px) saturate(200%)' }] as any}>
+            {/* Tab toggle */}
+            <View style={styles.authTabContainer}>
+              <TouchableOpacity
+                style={[styles.authTab, isLogin && { backgroundColor: Colors.primary }]}
+                onPress={() => setIsLogin(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.authTabText, isLogin && { color: '#111', fontWeight: '700' }]}>Iniciar Sesión</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.authTab, !isLogin && { backgroundColor: Colors.primary }]}
+                onPress={() => setIsLogin(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.authTabText, !isLogin && { color: '#111', fontWeight: '700' }]}>Registrarse</Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Form */}
-          <View style={styles.authForm}>
-            {!isLogin && (
-              <GlassCard style={styles.inputCard}>
-                <View style={styles.inputRow}>
-                  <Ionicons name="person-outline" size={18} color={Colors.textTertiary} />
+            {/* Form fields */}
+            <View style={styles.authForm}>
+              {!isLogin && (
+                <View style={styles.authInputWrap}>
+                  <Ionicons name="person-outline" size={18} color="rgba(255,255,255,0.6)" />
                   <TextInput
-                    style={[styles.input, { color: isDark ? Colors.textDark : Colors.text }]}
+                    style={styles.input}
                     placeholder="Nombre completo"
-                    placeholderTextColor={isDark ? Colors.textTertiaryDark : Colors.textTertiary}
+                    placeholderTextColor="rgba(255,255,255,0.5)"
                     value={name}
                     onChangeText={setName}
                   />
                 </View>
-              </GlassCard>
-            )}
+              )}
 
-            <GlassCard style={styles.inputCard}>
-              <View style={styles.inputRow}>
-                <Ionicons name="mail-outline" size={18} color={Colors.textTertiary} />
+              <View style={styles.authInputWrap}>
+                <Ionicons name="mail-outline" size={18} color="rgba(255,255,255,0.6)" />
                 <TextInput
-                  style={[styles.input, { color: isDark ? Colors.textDark : Colors.text }]}
+                  style={styles.input}
                   placeholder="Correo electrónico"
-                  placeholderTextColor={isDark ? Colors.textTertiaryDark : Colors.textTertiary}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
               </View>
-            </GlassCard>
 
-            <GlassCard style={styles.inputCard}>
-              <View style={styles.inputRow}>
-                <Ionicons name="lock-closed-outline" size={18} color={Colors.textTertiary} />
+              <View style={styles.authInputWrap}>
+                <Ionicons name="lock-closed-outline" size={18} color="rgba(255,255,255,0.6)" />
                 <TextInput
-                  style={[styles.input, { color: isDark ? Colors.textDark : Colors.text }]}
+                  style={styles.input}
                   placeholder="Contraseña"
-                  placeholderTextColor={isDark ? Colors.textTertiaryDark : Colors.textTertiary}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color={Colors.textTertiary} />
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="rgba(255,255,255,0.6)" />
                 </TouchableOpacity>
               </View>
-            </GlassCard>
 
-            <TouchableOpacity style={styles.authButton} onPress={handleAuth} disabled={loading} activeOpacity={0.8}>
-              <Text style={styles.authButtonText}>
-                {loading ? 'Cargando...' : isLogin ? 'Iniciar Sesión' : 'Registrarse'}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.authButton} onPress={handleAuth} disabled={loading} activeOpacity={0.8}>
+                <Text style={styles.authButtonText}>
+                  {loading ? 'Cargando...' : isLogin ? 'Iniciar Sesión' : 'Registrarse'}
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.googleButton, { borderColor: isDark ? Colors.borderDark : Colors.border }]} activeOpacity={0.8}>
-              <Ionicons name="logo-google" size={20} color={isDark ? Colors.textDark : Colors.text} />
-              <Text style={[styles.googleButtonText, { color: isDark ? Colors.textDark : Colors.text }]}>
-                Continuar con Google
-              </Text>
-            </TouchableOpacity>
+              <View style={styles.authDivider}>
+                <View style={styles.authDividerLine} />
+                <Text style={styles.authDividerText}>o</Text>
+                <View style={styles.authDividerLine} />
+              </View>
+
+              <TouchableOpacity style={styles.googleButton} activeOpacity={0.8}>
+                <Ionicons name="logo-google" size={20} color="#FFF" />
+                <Text style={styles.googleButtonText}>
+                  Continuar con Google
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
       </ScrollView>
@@ -246,11 +257,12 @@ export default function HomeScreen() {
   const {
     isDarkMode, isAuthenticated, user, searchQuery, setSearchQuery,
     favorites, toggleFavorite, selectComplex, unreadNotificationCount,
-    markAllNotificationsRead, recentlyViewed,
+    markAllNotificationsRead, recentlyViewed, notifications,
   } = useAppStore();
   const isDark = isDarkMode;
 
   const [showFilters, setShowFilters] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState('Todos');
   const [selectedSport, setSelectedSport] = useState('todos');
   const [sortBy, setSortBy] = useState<'popular' | 'price' | 'near'>('popular');
@@ -327,7 +339,7 @@ export default function HomeScreen() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.notificationBell}
-              onPress={() => markAllNotificationsRead()}
+              onPress={() => { setShowNotifications(true); markAllNotificationsRead(); }}
               activeOpacity={0.7}
             >
               <Ionicons name="notifications-outline" size={22} color={isDark ? Colors.textDark : Colors.text} />
@@ -337,9 +349,6 @@ export default function HomeScreen() {
                 </View>
               )}
             </TouchableOpacity>
-            <View style={styles.avatarRing}>
-              <Image source={{ uri: user?.avatar }} style={styles.headerAvatar} contentFit="cover" />
-            </View>
           </View>
         </Animated.View>
 
@@ -544,6 +553,53 @@ export default function HomeScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Notifications Modal */}
+      <Modal visible={showNotifications} transparent animationType="fade" onRequestClose={() => setShowNotifications(false)}>
+        <View style={styles.notifModalBackdrop}>
+          <View style={[styles.notifModalCard, { backgroundColor: isDark ? Colors.surfaceDark : '#FFF' }]}>
+            {/* Header */}
+            <View style={styles.notifModalHeader}>
+              <Text style={[styles.notifModalTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Notificaciones</Text>
+              <TouchableOpacity onPress={() => setShowNotifications(false)} style={styles.notifModalClose} activeOpacity={0.7}>
+                <Ionicons name="close" size={22} color={isDark ? Colors.textDark : Colors.text} />
+              </TouchableOpacity>
+            </View>
+            {/* List */}
+            <FlatList
+              data={notifications}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.notifList}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.notifEmpty}>
+                  <Ionicons name="notifications-off-outline" size={40} color={Colors.textTertiary} />
+                  <Text style={[styles.notifEmptyText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Sin notificaciones</Text>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const notifIcon = item.type === 'booking_confirmed' ? 'checkmark-circle' : item.type === 'booking_reminder' ? 'alarm-outline' : item.type === 'booking_cancelled' ? 'close-circle' : item.type === 'promotion' ? 'pricetag-outline' : 'star-outline';
+                const notifColor = item.type === 'booking_confirmed' ? Colors.success : item.type === 'booking_reminder' ? Colors.warning : item.type === 'booking_cancelled' ? Colors.error : item.type === 'promotion' ? Colors.primary : Colors.star;
+                return (
+                  <View style={[styles.notifItem, !item.read && { backgroundColor: isDark ? 'rgba(132,204,22,0.06)' : 'rgba(132,204,22,0.06)' }]}>
+                    <View style={[styles.notifIconWrap, { backgroundColor: notifColor + '15' }]}>
+                      <Ionicons name={notifIcon as any} size={18} color={notifColor} />
+                    </View>
+                    <View style={styles.notifContent}>
+                      <View style={styles.notifTitleRow}>
+                        <Text style={[styles.notifTitle, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{item.title}</Text>
+                        {!item.read && <View style={styles.notifUnreadDot} />}
+                      </View>
+                      <Text style={[styles.notifMessage, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]} numberOfLines={2}>{item.message}</Text>
+                      <Text style={styles.notifTime}>{formatNotificationTime(item.timestamp)}</Text>
+                    </View>
+                  </View>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -553,29 +609,82 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 120 },
 
-  // Auth
-  authContainer: { flex: 1 },
+  // ========================
+  // Auth Screen Styles
+  // ========================
+  authContainer: { flex: 1, position: 'relative' },
+  authBgImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  authBgOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)' },
   authScroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   authContent: { alignItems: 'center' },
-  logoContainer: { marginBottom: 12 },
-  logoIcon: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
-  authTitle: { fontSize: 28, fontWeight: '800', marginBottom: 4 },
-  authSubtitle: { fontSize: 14, marginBottom: 24 },
-  authTabContainer: { flexDirection: 'row', borderRadius: 12, padding: 4, marginBottom: 24, width: '100%' },
+  logoContainer: { marginBottom: 14 },
+  logoGlass: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  authTitle: { fontSize: 30, fontWeight: '800', color: '#FFF', marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  authSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 28 },
+  authTabContainer: { flexDirection: 'row', borderRadius: 14, padding: 4, marginBottom: 20, width: '100%', backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
   authTab: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  authTabText: { fontSize: 14, fontWeight: '600', color: '#999' },
-  authForm: { width: '100%', gap: 12 },
-  inputCard: { padding: 0 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 4, gap: 10 },
-  input: { flex: 1, height: 44, fontSize: 14 },
-  authButton: { backgroundColor: Colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
+  authTabText: { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.6)' },
+  authForm: { width: '100%', gap: 10 },
+  authGlassCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  authInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    height: 48,
+  },
+  input: { flex: 1, height: 44, fontSize: 14, color: '#FFF' },
+  authDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6, marginBottom: 6 },
+  authDividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.15)' },
+  authDividerText: { fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+  authButton: { backgroundColor: Colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
   authButtonText: { color: '#111', fontWeight: '700', fontSize: 16 },
-  googleButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginTop: 8, gap: 8 },
-  googleButtonText: { fontSize: 14, fontWeight: '600' },
-  welcomeOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  welcomeCheck: { marginBottom: 16 },
-  welcomeTitle: { fontSize: 28, fontWeight: '800', textAlign: 'center' },
-  welcomeSub: { fontSize: 16, textAlign: 'center', marginTop: 4 },
+  googleButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1, marginTop: 8, gap: 8, borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.08)' },
+  googleButtonText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
+
+  // Welcome overlay (on top of login)
+  welcomeBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  welcomeContent: { alignItems: 'center', justifyContent: 'center' },
+  welcomeCheckCircle: { marginBottom: 20 },
+  welcomeTitle: { fontSize: 30, fontWeight: '800', textAlign: 'center', color: Colors.text },
+  welcomeSub: { fontSize: 17, textAlign: 'center', marginTop: 6, color: Colors.textSecondary },
 
   // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
@@ -586,19 +695,17 @@ const styles = StyleSheet.create({
   notificationBell: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(132,204,22,0.1)' },
   notificationBadge: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: Colors.error, alignItems: 'center', justifyContent: 'center' },
   notificationBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '700' },
-  avatarRing: { width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: Colors.primary, padding: 2 },
-  headerAvatar: { width: '100%', height: '100%', borderRadius: 19 },
 
   // Banner
   bannerContainer: { marginBottom: 16 },
   bannerCard: { overflow: 'hidden', borderRadius: 16 },
-  bannerInner: { padding: 20, borderRadius: 16, overflow: 'hidden', minHeight: 130, justifyContent: 'center' },
+  bannerInner: { padding: 8, borderRadius: 16, overflow: 'hidden', minHeight: 40, justifyContent: 'center' },
   bannerDecor1: { position: 'absolute', top: -30, right: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.15)' },
   bannerDecor2: { position: 'absolute', bottom: -20, left: 30, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.1)' },
-  bannerEmoji: { fontSize: 32, marginBottom: 6 },
-  bannerTitle: { fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 10 },
-  bannerButton: { backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
-  bannerButtonText: { color: '#FFF', fontWeight: '600', fontSize: 13 },
+  bannerEmoji: { fontSize: 16, marginBottom: 1 },
+  bannerTitle: { fontSize: 11, fontWeight: '700', color: '#FFF', marginBottom: 2 },
+  bannerButton: { backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 16, alignSelf: 'flex-start' },
+  bannerButtonText: { color: '#FFF', fontWeight: '600', fontSize: 10 },
   bannerDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 10 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ccc' },
   dotActive: { backgroundColor: Colors.primary, width: 20 },
@@ -606,7 +713,7 @@ const styles = StyleSheet.create({
   // Search
   searchCard: { marginBottom: 12 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  searchInput: { flex: 1, height: 44, fontSize: 15 },
+  searchInput: { flex: 1, height: 28, fontSize: 14 },
 
   // Pills
   pillsScroll: { marginBottom: 12, marginHorizontal: -16, paddingHorizontal: 16 },
@@ -641,7 +748,7 @@ const styles = StyleSheet.create({
   venueCard: { marginBottom: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
   venueImageContainer: { position: 'relative', width: '100%', aspectRatio: 16 / 9 },
   venueImage: { width: '100%', height: '100%', borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  venueHeart: { position: 'absolute', top: 8, right: 8, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
+  venueHeart: { position: 'absolute', top: 8, right: 8, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
   venueRating: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   venueRatingText: { fontSize: 12, fontWeight: '700' },
   venueContent: { padding: 12 },
@@ -662,4 +769,22 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 13, textAlign: 'center', marginBottom: 16 },
   emptyButton: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, borderColor: Colors.primary },
   emptyButtonText: { color: Colors.primary, fontWeight: '700', fontSize: 14 },
+
+  // Notifications Modal
+  notifModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  notifModalCard: { width: '100%', maxWidth: 400, maxHeight: '80%', borderRadius: 20, overflow: 'hidden', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, alignSelf: 'center' },
+  notifModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)' },
+  notifModalTitle: { fontSize: 18, fontWeight: '800' },
+  notifModalClose: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
+  notifList: { paddingHorizontal: 16, paddingBottom: 16, paddingTop: 8 },
+  notifEmpty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 8 },
+  notifEmptyText: { fontSize: 14, fontWeight: '500' },
+  notifItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12, paddingHorizontal: 4, borderRadius: 12, marginBottom: 4 },
+  notifIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  notifContent: { flex: 1, gap: 2 },
+  notifTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  notifTitle: { fontSize: 14, fontWeight: '700', flex: 1 },
+  notifUnreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary },
+  notifMessage: { fontSize: 12, lineHeight: 16 },
+  notifTime: { fontSize: 11, color: Colors.textTertiary, marginTop: 2 },
 });

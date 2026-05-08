@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   lowAvailBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(234,179,8,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   lowAvailText: { fontSize: 10, fontWeight: '600', color: Colors.warning },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 8 },
-  timeSlot: { width: (SCREEN_WIDTH - 48) / 4, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.success + '30', backgroundColor: Colors.success + '10', gap: 2 },
+  timeSlot: { width: (SCREEN_WIDTH - 40) / 3, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.success + '30', backgroundColor: Colors.success + '10', gap: 2 },
   timeSlotOccupied: { borderColor: Colors.error + '30', backgroundColor: Colors.error + '08' },
   timeSlotText: { fontSize: 14, fontWeight: '700', color: Colors.success },
   timeSlotTextOccupied: { color: Colors.error + '60' },

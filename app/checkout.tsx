@@ -18,7 +18,7 @@ import { getComplexById, formatPrice, mockTimeSlots } from '../lib/mock-data';
 import { Colors } from '../constants/theme';
 import { GlassCard } from '../components/GlassCard';
 
-const COUNTDOWN_SECONDS = 600;
+const COUNTDOWN_SECONDS = 300;
 
 const paymentMethods = [
   { id: 'yape', label: 'Yape', icon: 'phone-portrait-outline', color: '#7C3AED' },

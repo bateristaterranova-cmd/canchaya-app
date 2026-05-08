@@ -6,10 +6,10 @@ import { useAppStore, TabType } from '../lib/store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Shadows } from '../constants/theme';
 
-const tabs: { id: TabType; label: string; icon: string; activeIcon: string; isCenter?: boolean }[] = [
+const tabs: { id: TabType; label: string; icon: string; activeIcon: string }[] = [
   { id: 'home', label: 'Inicio', icon: 'home-outline', activeIcon: 'home' },
   { id: 'activity', label: 'Actividad', icon: 'calendar-outline', activeIcon: 'calendar' },
-  { id: 'map', label: 'Mapa', icon: 'location-outline', activeIcon: 'location', isCenter: true },
+  { id: 'map', label: 'Mapa', icon: 'map-outline', activeIcon: 'map' },
   { id: 'profile', label: 'Perfil', icon: 'person-outline', activeIcon: 'person' },
 ];
 
@@ -57,38 +57,6 @@ export const BottomNav = React.memo(function BottomNav() {
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
 
-          if (tab.isCenter) {
-            return (
-              <TouchableOpacity
-                key={tab.id}
-                style={styles.centerButtonContainer}
-                onPress={() => handleTabPress(tab.id)}
-                activeOpacity={0.8}
-              >
-                <View
-                  style={[
-                    styles.centerButton,
-                    { backgroundColor: Colors.primary },
-                  ]}
-                >
-                  <Ionicons name="location" size={20} color="#111111" />
-                </View>
-                <Text
-                  style={[
-                    styles.tabLabel,
-                    {
-                      color: isActive ? Colors.primary : isDark ? Colors.textTertiaryDark : Colors.textTertiary,
-                      fontWeight: isActive ? '700' : '500',
-                      marginTop: 2,
-                    },
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          }
-
           return (
             <TouchableOpacity
               key={tab.id}
@@ -133,8 +101,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
-    height: 64,
-    paddingHorizontal: 8,
+    height: 68,
+    paddingHorizontal: 12,
   },
   tabButton: {
     flex: 1,
@@ -148,8 +116,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tabLabel: {
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 0.2,
   },
   activeIndicator: {
     position: 'absolute',
@@ -158,26 +127,5 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.primary,
-  },
-  centerButtonContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 4,
-  },
-  centerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2.5,
-    borderColor: '#FFFFFF',
-    marginTop: -16,
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
   },
 });

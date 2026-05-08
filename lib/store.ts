@@ -50,6 +50,7 @@ interface AppState {
   addToRecentlyViewed: (id: string) => void;
   toggleDarkMode: () => void;
   cancelReservation: (id: string) => void;
+  updateUser: (data: Partial<UserInfo>) => void;
 }
 
 export const useAppStore = create<AppState>()((set) => ({
@@ -174,4 +175,8 @@ export const useAppStore = create<AppState>()((set) => ({
       );
       return { reservations };
     }),
+
+  updateUser: (data) => set((state) => ({
+    user: state.user ? { ...state.user, ...data } : null,
+  })),
 }));

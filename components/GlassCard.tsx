@@ -8,14 +8,16 @@ interface GlassCardProps {
   style?: any;
   padding?: number;
   noPadding?: boolean;
+  blurIntensity?: number; // Custom blur intensity for auth cards etc.
 }
 
-export const GlassCard = React.memo(function GlassCard({ children, style, padding = 16, noPadding }: GlassCardProps) {
+export const GlassCard = React.memo(function GlassCard({ children, style, padding = 16, noPadding, blurIntensity }: GlassCardProps) {
   const { isDarkMode } = useAppStore();
   const isDark = isDarkMode;
 
-  // Web fallback: use View with semi-transparent background (BlurView not supported on web)
+  // Web: use backdrop-filter for real Gaussian blur
   if (Platform.OS === 'web') {
+    const blurPx = blurIntensity || 20;
     return (
       <View
         style={[
@@ -24,6 +26,8 @@ export const GlassCard = React.memo(function GlassCard({ children, style, paddin
             backgroundColor: isDark ? Colors.glassBgDark : Colors.glassBg,
             borderColor: isDark ? Colors.glassBorderDark : Colors.glassBorder,
             padding: noPadding ? 0 : padding,
+            backdropFilter: `blur(${blurPx}px) saturate(180%)`,
+            WebkitBackdropFilter: `blur(${blurPx}px) saturate(180%)`,
           },
           isDark ? Shadows.card.dark : Shadows.card.light,
           style,
@@ -38,7 +42,7 @@ export const GlassCard = React.memo(function GlassCard({ children, style, paddin
   const { BlurView } = require('expo-blur');
   return (
     <BlurView
-      intensity={isDark ? 40 : 60}
+      intensity={blurIntensity || (isDark ? 40 : 60)}
       tint={isDark ? 'dark' : 'light'}
       style={[
         styles.glass,

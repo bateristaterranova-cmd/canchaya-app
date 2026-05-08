@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TextInput,
   FlatList,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,8 @@ import { mockComplexes, formatPrice, getComplexById, getCourtTypeLabel } from '.
 import { Colors, DEFAULT_REGION } from '../../constants/theme';
 import { GlassCard } from '../../components/GlassCard';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 // Lazy-load MapView only on native platforms
 let MapView: any = null;
 let Marker: any = null;
@@ -30,6 +33,104 @@ if (Platform.OS !== 'web') {
   } catch {}
 }
 
+// Generate map HTML with Leaflet.js — supports dark mode via isDark param
+function generateMapHTML(complexes: any[], isDark: boolean) {
+  // CartoDB Voyager for warm/light minimalist, Dark Matter for dark mode — Uber-like style
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+  const popupBg = isDark ? '#1e1e1e' : '#FFF';
+  const popupColor = isDark ? '#F5F5F5' : '#111';
+  const popupSubColor = isDark ? '#aaa' : '#666';
+
+  const pins = complexes.map((c, i) => `
+    L.marker([${c.lat}, ${c.lng}], {
+      icon: L.divIcon({
+        className: 'custom-pin',
+        html: '<div class="pin"><div class="pin-dot"></div></div><div class="pin-label">S/${c.minPrice}</div>',
+        iconSize: [50, 56],
+        iconAnchor: [25, 56],
+      })
+    }).addTo(map)
+    .bindPopup('<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;"><b style="font-size:14px;color:${popupColor}">${c.name.replace(/'/g, "\\'")}</b><br><span style="font-size:12px;color:${popupSubColor}">${c.district}</span></div>', { className: 'custom-popup' })
+    .on('click', function() { window.parent.postMessage(${JSON.stringify(c.id)}, '*') });
+  `).join('\n');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #map { width: 100%; height: 100%; }
+    .custom-pin { background: none !important; border: none !important; }
+    .pin {
+      width: 36px;
+      height: 36px;
+      background: #84CC16;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+      border: 2.5px solid #FFF;
+    }
+    .pin-dot {
+      width: 12px;
+      height: 12px;
+      background: #FFF;
+      border-radius: 50%;
+      transform: rotate(45deg);
+    }
+    .pin-label {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${isDark ? '#1a1a1a' : '#FFF'};
+      color: ${isDark ? '#F5F5F5' : '#111'};
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 8px;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'};
+    }
+    .custom-popup .leaflet-popup-content-wrapper {
+      border-radius: 12px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+      background: ${popupBg} !important;
+    }
+    .custom-popup .leaflet-popup-tip {
+      background: ${popupBg} !important;
+    }
+    .custom-popup .leaflet-popup-content {
+      margin: 10px 14px !important;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .leaflet-control-zoom { display: none !important; }
+    .leaflet-control-attribution { font-size: 9px !important; opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', { zoomControl: false }).setView([${DEFAULT_REGION.latitude}, ${DEFAULT_REGION.longitude}], ${DEFAULT_REGION.latitudeDelta > 0.05 ? 13 : 12});
+    L.tileLayer('${tileUrl}', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      maxZoom: 19,
+    }).addTo(map);
+    ${pins}
+  </script>
+</body>
+</html>`;
+}
+
 export default function MapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -38,6 +139,19 @@ export default function MapScreen() {
 
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedComplexId, setSelectedComplexId] = useState<string | null>(null);
+  const [webViewReady, setWebViewReady] = useState(false);
+
+  // Listen for postMessage from iframe (web pin clicks)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (event: MessageEvent) => {
+      if (event.data && typeof event.data === 'string') {
+        setSelectedComplexId(event.data);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const filteredComplexes = useMemo(() => {
     if (!searchQuery.trim()) return mockComplexes;
@@ -53,6 +167,10 @@ export default function MapScreen() {
     selectComplex(id);
     router.push('/detail');
   };
+
+  const handlePinClickWeb = useCallback((id: string) => {
+    setSelectedComplexId(id);
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
@@ -103,28 +221,64 @@ export default function MapScreen() {
       {viewMode === 'map' ? (
         <View style={styles.mapContainer}>
           {Platform.OS === 'web' ? (
-            /* Web map placeholder - pins on a neutral background */
-            <View style={[styles.webMapPlaceholder, { backgroundColor: isDark ? '#1a1a2e' : '#F0F4F8' }]}>
-              {filteredComplexes.map((complex, index) => {
-                const col = index % 4;
-                const row = Math.floor(index / 4);
-                return (
-                  <TouchableOpacity
-                    key={complex.id}
-                    style={[styles.webMapPin, { left: `${15 + col * 22}%`, top: `${15 + row * 30}%` }]}
-                    onPress={() => setSelectedComplexId(complex.id)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={[styles.webMapPinIcon, { backgroundColor: Colors.primary }]}>
-                      <Ionicons name="football" size={14} color="#111" />
+            <>
+              {/* CartoDB map via iframe + Leaflet */}
+              <iframe
+                srcDoc={generateMapHTML(filteredComplexes, isDark)}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  borderRadius: 16,
+                }}
+                onLoad={() => setWebViewReady(true)}
+              />
+
+              {/* Selected complex bottom card */}
+              {selectedComplex && (
+                <Animated.View entering={FadeInDown.duration(300)} style={styles.bottomSheet}>
+                  <View style={[styles.bottomSheetCard, { backgroundColor: isDark ? '#1a1a1a' : '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 8 }]}>
+                    {/* Handle bar */}
+                    <View style={styles.bottomSheetHandle} />
+                    <View style={styles.bottomSheetRow}>
+                      <Image source={{ uri: selectedComplex.image }} style={styles.bottomSheetImage} contentFit="cover" />
+                      <View style={styles.bottomSheetInfo}>
+                        <Text style={[styles.bottomSheetName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
+                          {selectedComplex.name}
+                        </Text>
+                        <View style={styles.bottomSheetDistrictRow}>
+                          <Ionicons name="location-outline" size={12} color={Colors.primary} />
+                          <Text style={[styles.bottomSheetDistrict, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
+                            {selectedComplex.district}
+                          </Text>
+                        </View>
+                        <View style={styles.bottomSheetMetaRow}>
+                          <View style={styles.bottomSheetRating}>
+                            <Ionicons name="star" size={12} color={Colors.star} />
+                            <Text style={styles.bottomSheetRatingText}>{selectedComplex.rating}</Text>
+                          </View>
+                          <Text style={styles.bottomSheetPrice}>{formatPrice(selectedComplex.minPrice)}/h</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.bottomSheetButton} onPress={() => handleComplexPress(selectedComplex.id)} activeOpacity={0.8}>
+                        <Text style={styles.bottomSheetButtonText}>Ver detalle</Text>
+                      </TouchableOpacity>
                     </View>
-                    <Text style={[styles.webMapPinLabel, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
-                      {complex.name.split(' ').slice(0, 2).join(' ')}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                    <TouchableOpacity style={styles.bottomSheetClose} onPress={() => setSelectedComplexId(null)} activeOpacity={0.7}>
+                      <Ionicons name="close" size={14} color={isDark ? '#888' : '#666'} />
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+              )}
+
+              {/* Map legend — simplified */}
+              <View style={[styles.mapLegend, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)' }]}>
+                <Ionicons name="location" size={14} color={Colors.primary} />
+                <Text style={[styles.legendText, { color: isDark ? Colors.textDark : Colors.text }]}>
+                  {filteredComplexes.length} canchas
+                </Text>
+              </View>
+            </>
           ) : MapView ? (
             <>
               <MapView
@@ -141,10 +295,9 @@ export default function MapScreen() {
                     onPress={() => setSelectedComplexId(complex.id)}
                   >
                     <View style={styles.markerContainer}>
-                      <View style={[styles.marker, { backgroundColor: Colors.primary }]}>
-                        <Ionicons name="football" size={14} color="#111" />
+                      <View style={styles.markerPin}>
+                        <View style={styles.markerPinDot} />
                       </View>
-                      <View style={styles.markerArrow} />
                     </View>
                   </Marker>
                 ))}
@@ -155,47 +308,44 @@ export default function MapScreen() {
               >
                 <Ionicons name="locate-outline" size={22} color={Colors.primary} />
               </TouchableOpacity>
+
+              {/* Selected complex bottom card */}
+              {selectedComplex && (
+                <Animated.View entering={FadeInDown.duration(300)} style={styles.bottomSheet}>
+                  <View style={[styles.bottomSheetCard, { backgroundColor: isDark ? '#1a1a1a' : '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 12, elevation: 8 }]}>
+                    <View style={styles.bottomSheetHandle} />
+                    <View style={styles.bottomSheetRow}>
+                      <Image source={{ uri: selectedComplex.image }} style={styles.bottomSheetImage} contentFit="cover" />
+                      <View style={styles.bottomSheetInfo}>
+                        <Text style={[styles.bottomSheetName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{selectedComplex.name}</Text>
+                        <View style={styles.bottomSheetDistrictRow}>
+                          <Ionicons name="location-outline" size={12} color={Colors.primary} />
+                          <Text style={[styles.bottomSheetDistrict, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{selectedComplex.district}</Text>
+                        </View>
+                        <View style={styles.bottomSheetMetaRow}>
+                          <View style={styles.bottomSheetRating}>
+                            <Ionicons name="star" size={12} color={Colors.star} />
+                            <Text style={styles.bottomSheetRatingText}>{selectedComplex.rating}</Text>
+                          </View>
+                          <Text style={styles.bottomSheetPrice}>{formatPrice(selectedComplex.minPrice)}/h</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity style={styles.bottomSheetButton} onPress={() => handleComplexPress(selectedComplex.id)} activeOpacity={0.8}>
+                        <Text style={styles.bottomSheetButtonText}>Ver detalle</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity style={styles.bottomSheetClose} onPress={() => setSelectedComplexId(null)} activeOpacity={0.7}>
+                      <Ionicons name="close" size={14} color={isDark ? '#888' : '#666'} />
+                    </TouchableOpacity>
+                  </View>
+                </Animated.View>
+              )}
             </>
           ) : (
             <View style={styles.mapUnavailable}>
               <Ionicons name="map-outline" size={40} color={Colors.textTertiary} />
               <Text style={[styles.mapUnavailableText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Mapa no disponible</Text>
             </View>
-          )}
-
-          {/* Bottom sheet for selected complex */}
-          {selectedComplex && (
-            <Animated.View entering={FadeInDown.duration(300)} style={styles.bottomSheet}>
-              <GlassCard style={styles.bottomSheetCard} padding={12}>
-                <View style={styles.bottomSheetRow}>
-                  <Image source={{ uri: selectedComplex.image }} style={styles.bottomSheetImage} contentFit="cover" />
-                  <View style={styles.bottomSheetInfo}>
-                    <Text style={[styles.bottomSheetName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>
-                      {selectedComplex.name}
-                    </Text>
-                    <View style={styles.bottomSheetDistrictRow}>
-                      <Ionicons name="location-outline" size={12} color={Colors.primary} />
-                      <Text style={[styles.bottomSheetDistrict, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-                        {selectedComplex.district}
-                      </Text>
-                    </View>
-                    <View style={styles.bottomSheetMetaRow}>
-                      <View style={styles.bottomSheetRating}>
-                        <Ionicons name="star" size={12} color={Colors.star} />
-                        <Text style={styles.bottomSheetRatingText}>{selectedComplex.rating}</Text>
-                      </View>
-                      <Text style={styles.bottomSheetPrice}>{formatPrice(selectedComplex.minPrice)}/h</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.bottomSheetButton} onPress={() => handleComplexPress(selectedComplex.id)} activeOpacity={0.8}>
-                    <Text style={styles.bottomSheetButtonText}>Ver</Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity style={styles.bottomSheetClose} onPress={() => setSelectedComplexId(null)} activeOpacity={0.7}>
-                  <Ionicons name="close" size={16} color={Colors.textTertiary} />
-                </TouchableOpacity>
-              </GlassCard>
-            </Animated.View>
           )}
         </View>
       ) : (
@@ -271,34 +421,100 @@ const styles = StyleSheet.create({
   searchContainer: { paddingHorizontal: 16, marginBottom: 8 },
   searchCard: {},
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  searchInput: { flex: 1, height: 40, fontSize: 14 },
-  mapContainer: { flex: 1, position: 'relative' },
+  searchInput: { flex: 1, height: 26, fontSize: 13 },
+  mapContainer: { flex: 1, position: 'relative', marginHorizontal: 8, marginBottom: 8, borderRadius: 16, overflow: 'hidden' },
   map: { flex: 1 },
-  webMapPlaceholder: { flex: 1, position: 'relative', overflow: 'hidden' },
-  webMapPin: { position: 'absolute', alignItems: 'center' },
-  webMapPinIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 4, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4 },
-  webMapPinLabel: { fontSize: 9, fontWeight: '600', marginTop: 2, maxWidth: 80, textAlign: 'center' },
+
+  // Map legend — simplified
+  mapLegend: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  legendText: { fontSize: 12, fontWeight: '700' },
+
+  // Green teardrop pin marker (native)
+  markerContainer: { alignItems: 'center', justifyContent: 'center' },
+  markerPin: {
+    width: 40,
+    height: 40,
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    borderBottomLeftRadius: 0,
+    transform: [{ rotate: '-45deg' }],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFF',
+    elevation: 6,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+  },
+  markerPinDot: {
+    width: 12,
+    height: 12,
+    backgroundColor: '#FFF',
+    borderRadius: 6,
+    transform: [{ rotate: '45deg' }],
+  },
+
   mapUnavailable: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   mapUnavailableText: { fontSize: 14, fontWeight: '500' },
-  markerContainer: { alignItems: 'center' },
-  marker: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF', elevation: 4 },
-  markerArrow: { width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: Colors.primary, marginTop: -1 },
-  centerBtn: { position: 'absolute', right: 16, bottom: 120, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
-  bottomSheet: { position: 'absolute', bottom: 90, left: 16, right: 16 },
-  bottomSheetCard: { position: 'relative' },
-  bottomSheetRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bottomSheetImage: { width: 60, height: 60, borderRadius: 10 },
-  bottomSheetInfo: { flex: 1, gap: 3 },
-  bottomSheetName: { fontSize: 14, fontWeight: '700' },
+
+  // Bottom sheet for selected complex — Airbnb style
+  bottomSheet: { position: 'absolute', bottom: 16, left: 8, right: 8, zIndex: 10 },
+  bottomSheetCard: {
+    position: 'relative',
+    borderRadius: 16,
+    padding: 14,
+  },
+  bottomSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    alignSelf: 'center',
+    marginBottom: 10,
+  },
+  bottomSheetRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bottomSheetImage: { width: 80, height: 80, borderRadius: 12 },
+  bottomSheetInfo: { flex: 1, gap: 4 },
+  bottomSheetName: { fontSize: 15, fontWeight: '700' },
   bottomSheetDistrictRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   bottomSheetDistrict: { fontSize: 12 },
-  bottomSheetMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bottomSheetMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bottomSheetRating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   bottomSheetRatingText: { fontSize: 12, fontWeight: '700', color: Colors.star },
-  bottomSheetPrice: { fontSize: 14, fontWeight: '800', color: Colors.primary },
-  bottomSheetButton: { backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-  bottomSheetButtonText: { color: '#111', fontWeight: '700', fontSize: 13 },
-  bottomSheetClose: { position: 'absolute', top: 4, right: 4, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  bottomSheetPrice: { fontSize: 16, fontWeight: '800', color: Colors.primary },
+  bottomSheetButton: { backgroundColor: Colors.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  bottomSheetButtonText: { color: '#111', fontWeight: '700', fontSize: 12 },
+  bottomSheetClose: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerBtn: { position: 'absolute', right: 16, bottom: 120, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
+
+  // List view
   listContent: { paddingHorizontal: 16, paddingBottom: 100 },
   listCount: { fontSize: 12, marginBottom: 10 },
   listCard: { marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
