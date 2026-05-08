@@ -49,7 +49,6 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-reanimated/plugin",
       [
         "expo-location",
         {
