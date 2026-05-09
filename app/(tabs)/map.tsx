@@ -139,6 +139,8 @@ export default function MapScreen() {
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string>('todos');
   const { isDarkMode } = useAppStore();
   const isDark = isDarkMode;
   const router = useRouter();
@@ -150,7 +152,9 @@ export default function MapScreen() {
           c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.district.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : mockComplexes;
+    : activeFilter !== 'todos'
+      ? mockComplexes.filter(c => c.courts.some(court => court.type === activeFilter))
+      : mockComplexes;
 
   const selectedComplex = selectedPinId
     ? mockComplexes.find((c) => c.id === selectedPinId)
@@ -305,6 +309,36 @@ export default function MapScreen() {
           <Ionicons name={isLocating ? 'refresh' : 'locate'} size={24} color={isLocating ? '#94A3B8' : '#1E293B'} />
         </Pressable>
 
+        {/* Filter button */}
+        <Pressable style={[styles.filterButton, { top: (insets.top || 12) + 64 }]} onPress={() => setShowFilter(!showFilter)}>
+          <Ionicons name="funnel-outline" size={22} color={showFilter ? Colors.primary : '#1E293B'} />
+        </Pressable>
+
+        {/* Filter dropdown */}
+        {showFilter && (
+          <FadeInView type="fadeInDown" duration={200} style={[styles.filterDropdown, { top: (insets.top || 12) + 112 }]}>
+            <View style={[styles.filterDropdownInner, { backgroundColor: isDark ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.95)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
+              {[
+                { id: 'todos', label: 'Todos', icon: 'grid-outline' },
+                { id: 'futbol5', label: 'Fútbol 5', icon: 'football-outline' },
+                { id: 'futbol7', label: 'Fútbol 7', icon: 'football-outline' },
+                { id: 'futbol11', label: 'Fútbol 11', icon: 'football-outline' },
+                { id: 'padel', label: 'Pádel', icon: 'tennisball-outline' },
+              ].map((f) => (
+                <Pressable
+                  key={f.id}
+                  style={[styles.filterOption, activeFilter === f.id && styles.filterOptionActive]}
+                  onPress={() => { setActiveFilter(f.id); setShowFilter(false); }}
+                >
+                  <Ionicons name={f.icon as any} size={16} color={activeFilter === f.id ? Colors.primary : (isDark ? Colors.textDark : Colors.text)} />
+                  <Text style={[styles.filterOptionText, { color: activeFilter === f.id ? Colors.primary : (isDark ? Colors.textDark : Colors.text) }]}>{f.label}</Text>
+                  {activeFilter === f.id && <Ionicons name="checkmark" size={16} color={Colors.primary} />}
+                </Pressable>
+              ))}
+            </View>
+          </FadeInView>
+        )}
+
         {/* Results count */}
         <View style={styles.resultsOverlay}>
           <GlassCard style={styles.resultsCard}>
@@ -370,6 +404,29 @@ export default function MapScreen() {
           </GlassCard>
         </FadeInView>
       )}
+
+      {/* Legend */}
+      <View style={[styles.legendContainer, { backgroundColor: isDark ? 'rgba(10,10,10,0.88)' : 'rgba(255,255,255,0.92)' }]}>
+        <Text style={[styles.legendTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Leyenda</Text>
+        <View style={styles.legendItems}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
+            <Text style={[styles.legendText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Seleccionado</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#2D3748' }]} />
+            <Text style={[styles.legendText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Disponible</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#3B82F6' }]} />
+            <Text style={[styles.legendText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Tu ubicación</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#A8D5A2' }]} />
+            <Text style={[styles.legendText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Parques</Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
@@ -408,11 +465,22 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 6,
     borderWidth: 1, borderColor: '#E2E8F0',
   },
+  filterButton: {
+    position: 'absolute', right: 16, width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', zIndex: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4,
+    borderWidth: 1, borderColor: '#E2E8F0',
+  },
+  filterDropdown: { position: 'absolute', right: 16, zIndex: 25, width: 180 },
+  filterDropdownInner: { borderRadius: 14, borderWidth: 1, paddingVertical: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  filterOption: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10 },
+  filterOptionActive: { backgroundColor: Colors.primaryBg },
+  filterOptionText: { fontSize: 14, fontWeight: '500', flex: 1 },
   resultsOverlay: { position: 'absolute', bottom: 16, left: 16, zIndex: 20 },
   resultsCard: { paddingVertical: 8, paddingHorizontal: 14 },
   resultsText: { fontSize: 13, fontWeight: '600' },
   bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30 },
-  sheetCard: { borderTopLeftRadius: 24, borderTopRightRadius: 24, marginHorizontal: 0 },
+  sheetCard: { borderTopLeftRadius: 28, borderTopRightRadius: 28, marginHorizontal: 0, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 10 },
   sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1', alignSelf: 'center', marginBottom: 14 },
   sheetRow: { flexDirection: 'row', gap: 14, marginBottom: 16 },
   sheetImage: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#E2E8F0' },
@@ -431,4 +499,12 @@ const styles = StyleSheet.create({
   sheetViewButtonText: { color: '#111', fontWeight: '700', fontSize: 15 },
   sheetCloseBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
   sheetCloseText: { fontSize: 15, fontWeight: '500' },
+
+  // Legend
+  legendContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingVertical: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  legendTitle: { fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  legendItems: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendText: { fontSize: 11, fontWeight: '500' },
 });

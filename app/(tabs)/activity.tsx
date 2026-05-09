@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Animated as RNAnimated,
   Easing,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -42,6 +43,10 @@ const STATUS_CONFIG: Record<
 export default function ActivityScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('proximas');
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>(() => {
+    const now = new Date();
+    return `Actualizado: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  });
   const spinValue = useRef(new RNAnimated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
@@ -66,6 +71,8 @@ export default function ActivityScreen() {
     setTimeout(() => {
       setRefreshing(false);
       spinValue.setValue(0);
+      const now = new Date();
+      setLastUpdated(`Actualizado: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     }, 1200);
   }, []);
 
@@ -167,6 +174,18 @@ export default function ActivityScreen() {
         </Pressable>
       </View>
 
+      {/* Last Updated + Refresh Indicator */}
+      <View style={styles.lastUpdatedRow}>
+        {refreshing ? (
+          <View style={styles.refreshingIndicator}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.refreshingText}>Actualizando...</Text>
+          </View>
+        ) : (
+          <Text style={[styles.lastUpdatedText, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>{lastUpdated}</Text>
+        )}
+      </View>
+
       {/* Tab Switcher */}
       <View style={styles.tabContainer}>
         <View style={[styles.tabPill, { backgroundColor: isDark ? Colors.surfaceDark : Colors.surface, borderColor: isDark ? Colors.borderDark : Colors.border }]}>
@@ -228,6 +247,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.6)',
   },
+  lastUpdatedRow: { paddingHorizontal: 20, paddingBottom: 4, paddingTop: 2 },
+  lastUpdatedText: { fontSize: 12, fontWeight: '500' },
+  refreshingIndicator: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  refreshingText: { fontSize: 12, fontWeight: '600', color: Colors.primary },
   tabContainer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
   tabPill: {
     flexDirection: 'row',

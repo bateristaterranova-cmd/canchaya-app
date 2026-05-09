@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -82,11 +83,18 @@ export default function DetailScreen() {
             <Ionicons name="arrow-back" size={20} color="#FFF" />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.heroButton, { right: 16, top: (insets.top || 12) + 4 }]}
+            style={[styles.heroButton, { right: 60, top: (insets.top || 12) + 4 }]}
             onPress={() => toggleFavorite(complex.id)}
             activeOpacity={0.7}
           >
             <Ionicons name={isFav ? 'heart' : 'heart-outline'} size={20} color={isFav ? Colors.heart : '#FFF'} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.heroButton, { right: 16, top: (insets.top || 12) + 4 }]}
+            onPress={() => Alert.alert('¡Enlace copiado!', 'El enlace de esta cancha ha sido copiado al portapapeles.')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="share-outline" size={20} color="#FFF" />
           </TouchableOpacity>
           <View style={styles.imageCounter}>
             <Text style={styles.imageCounterText}>{activeImageIndex + 1}/{allImages.length}</Text>

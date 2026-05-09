@@ -9,6 +9,7 @@ import {
   FlatList,
   TextInput,
   Switch,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -173,6 +174,60 @@ export default function ProfileScreen() {
                 <Text style={[styles.contactLabel, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Ubicación</Text>
                 <Text style={[styles.contactValue, { color: isDark ? Colors.textDark : Colors.text }]}>Lima, Perú</Text>
               </View>
+            </View>
+          </GlassCard>
+        </FadeInView>
+
+        {/* ── Reservation Stats Card ───────────────────────────────────── */}
+        <FadeInView type="fadeInDown" duration={400} delay={75}>
+          <View style={[styles.statsCard, { backgroundColor: isDark ? 'rgba(132,204,22,0.08)' : 'rgba(132,204,22,0.06)', borderColor: isDark ? 'rgba(132,204,22,0.15)' : 'rgba(132,204,22,0.12)' }]}>
+            <View style={styles.statsHeader}>
+              <Ionicons name="stats-chart" size={20} color={Colors.primary} />
+              <Text style={[styles.statsTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Estadísticas de Reservas</Text>
+            </View>
+            <View style={styles.statsGrid}>
+              <View style={[styles.statItem, { backgroundColor: isDark ? 'rgba(132,204,22,0.1)' : 'rgba(132,204,22,0.08)' }]}>
+                <Ionicons name="calendar" size={22} color={Colors.primary} />
+                <Text style={[styles.statValue, { color: Colors.primary }]}>{reservations.length}</Text>
+                <Text style={[styles.statLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Reservas</Text>
+              </View>
+              <View style={[styles.statItem, { backgroundColor: isDark ? 'rgba(132,204,22,0.1)' : 'rgba(132,204,22,0.08)' }]}>
+                <Ionicons name="time" size={22} color={Colors.primary} />
+                <Text style={[styles.statValue, { color: Colors.primary }]}>{reservations.filter(r => r.status === 'completed').length}</Text>
+                <Text style={[styles.statLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Horas jugadas</Text>
+              </View>
+              <View style={[styles.statItem, { backgroundColor: isDark ? 'rgba(132,204,22,0.1)' : 'rgba(132,204,22,0.08)' }]}>
+                <Ionicons name="wallet" size={22} color={Colors.primary} />
+                <Text style={[styles.statValue, { color: Colors.primary }]}>{formatPrice(reservations.reduce((sum, r) => sum + r.totalPrice, 0))}</Text>
+                <Text style={[styles.statLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Gastado</Text>
+              </View>
+            </View>
+          </View>
+        </FadeInView>
+
+        {/* ── Referir un Amigo Section ─────────────────────────────────── */}
+        <FadeInView type="fadeInDown" duration={400} delay={90}>
+          <GlassCard style={styles.referralCard}>
+            <View style={styles.referralHeader}>
+              <View style={styles.referralIconWrap}>
+                <Ionicons name="people" size={24} color="#FFF" />
+              </View>
+              <View style={styles.referralHeaderText}>
+                <Text style={[styles.referralTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Referir un amigo</Text>
+                <Text style={[styles.referralSub, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Gana S/20 por cada amigo que reserve</Text>
+              </View>
+            </View>
+            <View style={[styles.referralCodeRow, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
+              <Ionicons name="link-outline" size={18} color={Colors.primary} />
+              <Text style={[styles.referralCode, { color: isDark ? Colors.textDark : Colors.text }]}>CANYA-{user.name?.split(' ')[0]?.toUpperCase()?.slice(0, 4) || 'USER'}</Text>
+              <TouchableOpacity
+                style={[styles.referralCopyBtn, { backgroundColor: Colors.primary }]}
+                onPress={() => Alert.alert('¡Código copiado!', 'Comparte tu código con amigos para ganar descuentos.')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="copy-outline" size={14} color="#111" />
+                <Text style={styles.referralCopyText}>Copiar</Text>
+              </TouchableOpacity>
             </View>
           </GlassCard>
         </FadeInView>
@@ -560,6 +615,27 @@ const styles = StyleSheet.create({
   contactLabel: { fontSize: 11, fontWeight: '500' },
   contactValue: { fontSize: 14, fontWeight: '600', marginTop: 1 },
   contactDivider: { height: 1, marginLeft: 48 },
+
+  // Reservation Stats
+  statsCard: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 16 },
+  statsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  statsTitle: { fontSize: 16, fontWeight: '700' },
+  statsGrid: { flexDirection: 'row', gap: 8 },
+  statItem: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 12, gap: 4 },
+  statValue: { fontSize: 18, fontWeight: '800' },
+  statLabel: { fontSize: 10, fontWeight: '600', textAlign: 'center' },
+
+  // Referral
+  referralCard: { marginBottom: 16 },
+  referralHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  referralIconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  referralHeaderText: { flex: 1 },
+  referralTitle: { fontSize: 16, fontWeight: '700' },
+  referralSub: { fontSize: 12, marginTop: 2 },
+  referralCodeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10 },
+  referralCode: { flex: 1, fontSize: 15, fontWeight: '700', letterSpacing: 1 },
+  referralCopyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  referralCopyText: { fontSize: 12, fontWeight: '700', color: '#111' },
 
   // Loyalty
   loyaltyCard: { marginBottom: 16 },

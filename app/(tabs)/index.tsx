@@ -227,6 +227,27 @@ export default function HomeScreen() {
   const [selectedSport, setSelectedSport] = useState('todos');
   const [sortBy, setSortBy] = useState<'popular' | 'price' | 'near'>('popular');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+
+  // Search history debounce: add to history after 1.5s of 3+ chars
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (searchQuery.trim().length >= 3) {
+      searchTimerRef.current = setTimeout(() => {
+        const q = searchQuery.trim().toLowerCase();
+        setSearchHistory(prev => {
+          const filtered = prev.filter(h => h.toLowerCase() !== q);
+          return [searchQuery.trim(), ...filtered].slice(0, 5);
+        });
+      }, 1500);
+    }
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [searchQuery]);
+
+  const removeFromHistory = useCallback((item: string) => {
+    setSearchHistory(prev => prev.filter(h => h !== item));
+  }, []);
 
   const bannerRef = useRef<FlatList>(null);
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -420,6 +441,33 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </FadeInView>
+        )}
+
+        {/* Search History */}
+        {searchHistory.length > 0 && searchQuery.trim().length > 0 && (
+          <FadeInView type="fadeInDown" duration={300}>
+            <View style={styles.searchHistorySection}>
+              <View style={styles.searchHistoryHeader}>
+                <Ionicons name="time-outline" size={14} color={isDark ? Colors.textTertiaryDark : Colors.textTertiary} />
+                <Text style={[styles.searchHistoryTitle, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Búsquedas recientes</Text>
+              </View>
+              <View style={styles.searchHistoryPills}>
+                {searchHistory.map((item, idx) => (
+                  <FadeInView key={item} type="fadeIn" duration={300} delay={idx * 60}>
+                    <View style={[styles.historyPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(132,204,22,0.08)', borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(132,204,22,0.2)' }]}>
+                      <TouchableOpacity onPress={() => setSearchQuery(item)} activeOpacity={0.7} style={styles.historyPillContent}>
+                        <Ionicons name="time-outline" size={12} color={Colors.primary} />
+                        <Text style={[styles.historyPillText, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{item}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => removeFromHistory(item)} activeOpacity={0.7} style={styles.historyPillRemove}>
+                        <Ionicons name="close" size={12} color={isDark ? Colors.textTertiaryDark : Colors.textTertiary} />
+                      </TouchableOpacity>
+                    </View>
+                  </FadeInView>
+                ))}
+              </View>
+            </View>
           </FadeInView>
         )}
 
@@ -660,6 +708,16 @@ const styles = StyleSheet.create({
   favToggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, alignSelf: 'flex-start', marginBottom: 12 },
   favToggleActive: { borderColor: Colors.heart, backgroundColor: 'rgba(239,68,68,0.08)' },
   favToggleText: { fontSize: 13, fontWeight: '600', color: '#666' },
+
+  // Search History
+  searchHistorySection: { marginBottom: 12 },
+  searchHistoryHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  searchHistoryTitle: { fontSize: 12, fontWeight: '600' },
+  searchHistoryPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  historyPill: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, paddingRight: 4, paddingLeft: 10, paddingVertical: 4 },
+  historyPillContent: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  historyPillText: { fontSize: 12, fontWeight: '500', maxWidth: 100 },
+  historyPillRemove: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginLeft: 2 },
 
   // Venue card
   venueCard: { marginBottom: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },

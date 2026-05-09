@@ -67,6 +67,7 @@ export default function CheckoutScreen() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [remaining, setRemaining] = useState(COUNTDOWN_SECONDS);
   const [countdownActive, setCountdownActive] = useState(true);
+  const [bookingId] = useState(() => 'CYA-' + Math.random().toString(36).substring(2, 6).toUpperCase());
 
   useEffect(() => {
     if (!countdownActive) return;
@@ -150,12 +151,70 @@ export default function CheckoutScreen() {
   if (showSuccess) {
     return (
       <View style={styles.successOverlay}>
+        {/* Confetti-like decorative circles */}
+        <View style={styles.confettiContainer} pointerEvents="none">
+          <View style={[styles.confettiCircle, { top: '8%', left: '10%', width: 20, height: 20, backgroundColor: Colors.primary + '40' }]} />
+          <View style={[styles.confettiCircle, { top: '15%', right: '15%', width: 14, height: 14, backgroundColor: '#3B82F640' }]} />
+          <View style={[styles.confettiCircle, { top: '25%', left: '25%', width: 10, height: 10, backgroundColor: '#FBBF2440' }]} />
+          <View style={[styles.confettiCircle, { top: '35%', right: '8%', width: 18, height: 18, backgroundColor: '#EF444440' }]} />
+          <View style={[styles.confettiCircle, { top: '50%', left: '5%', width: 12, height: 12, backgroundColor: Colors.primaryLight + '40' }]} />
+          <View style={[styles.confettiCircle, { top: '60%', right: '20%', width: 16, height: 16, backgroundColor: '#8B5CF640' }]} />
+          <View style={[styles.confettiCircle, { top: '75%', left: '18%', width: 14, height: 14, backgroundColor: '#14B8A640' }]} />
+          <View style={[styles.confettiCircle, { top: '80%', right: '10%', width: 10, height: 10, backgroundColor: Colors.primary + '50' }]} />
+          <View style={[styles.confettiCircle, { top: '45%', left: '40%', width: 8, height: 8, backgroundColor: '#F59E0B40' }]} />
+          <View style={[styles.confettiCircle, { top: '20%', right: '35%', width: 22, height: 22, backgroundColor: Colors.primary + '25' }]} />
+        </View>
+
         <RNAnimated.View style={[styles.successCheck, { transform: [{ scale: checkScale }] }, { shadowColor: Colors.primary, shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 0 }, elevation: 10 }]}>
           <Ionicons name="checkmark-circle" size={80} color={Colors.primary} />
         </RNAnimated.View>
         <RNAnimated.View style={{ opacity: textOpacity }}>
           <Text style={styles.successTitle}>¡Reserva Confirmada!</Text>
           <Text style={styles.successSub}>Tu reserva ha sido procesada exitosamente</Text>
+
+          {/* Booking Details */}
+          <View style={styles.successDetailsCard}>
+            <View style={styles.successDetailRow}>
+              <Ionicons name="location" size={16} color={Colors.primary} />
+              <Text style={styles.successDetailLabel}>Complejo</Text>
+              <Text style={styles.successDetailValue} numberOfLines={1}>{complex?.name || '—'}</Text>
+            </View>
+            <View style={styles.successDetailDivider} />
+            <View style={styles.successDetailRow}>
+              <Ionicons name="american-football" size={16} color={Colors.primary} />
+              <Text style={styles.successDetailLabel}>Cancha</Text>
+              <Text style={styles.successDetailValue} numberOfLines={1}>{court?.name || '—'}</Text>
+            </View>
+            <View style={styles.successDetailDivider} />
+            <View style={styles.successDetailRow}>
+              <Ionicons name="calendar" size={16} color={Colors.primary} />
+              <Text style={styles.successDetailLabel}>Fecha</Text>
+              <Text style={styles.successDetailValue}>{selectedDate || '—'}</Text>
+            </View>
+            <View style={styles.successDetailDivider} />
+            <View style={styles.successDetailRow}>
+              <Ionicons name="time" size={16} color={Colors.primary} />
+              <Text style={styles.successDetailLabel}>Hora</Text>
+              <Text style={styles.successDetailValue}>{selectedTimeSlot ? `${selectedTimeSlot} - ${parseInt(selectedTimeSlot) + 1}:00` : '—'}</Text>
+            </View>
+          </View>
+
+          {/* Booking ID */}
+          <View style={styles.bookingIdRow}>
+            <Ionicons name="key-outline" size={16} color="#94A3B8" />
+            <Text style={styles.bookingIdLabel}>ID de Reserva</Text>
+            <Text style={styles.bookingIdValue}>{bookingId}</Text>
+          </View>
+
+          {/* View Reservation Button */}
+          <TouchableOpacity
+            style={styles.successViewButton}
+            onPress={() => router.replace('/(tabs)/activity')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar-outline" size={18} color="#111" />
+            <Text style={styles.successViewButtonText}>Ver reserva</Text>
+          </TouchableOpacity>
         </RNAnimated.View>
       </View>
     );
@@ -437,8 +496,20 @@ const styles = StyleSheet.create({
   cancelButtonText: { fontSize: 15, fontWeight: '600' },
   confirmButton: { flex: 2, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   confirmButtonText: { fontSize: 15, fontWeight: '700' },
-  successOverlay: { flex: 1, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' },
+  successOverlay: { flex: 1, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  confettiContainer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  confettiCircle: { position: 'absolute', borderRadius: 999 },
   successCheck: { marginBottom: 16 },
   successTitle: { fontSize: 24, fontWeight: '800', color: '#FFF', marginTop: 16, textAlign: 'center' },
   successSub: { fontSize: 16, color: '#94A3B8', marginTop: 8, textAlign: 'center' },
+  successDetailsCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginTop: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', width: '100%' },
+  successDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
+  successDetailLabel: { fontSize: 13, color: '#94A3B8', flex: 1 },
+  successDetailValue: { fontSize: 13, fontWeight: '600', color: '#FFF', flex: 2, textAlign: 'right' },
+  successDetailDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.06)', marginVertical: 2 },
+  bookingIdRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16, backgroundColor: 'rgba(132,204,22,0.1)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  bookingIdLabel: { fontSize: 12, color: '#94A3B8' },
+  bookingIdValue: { fontSize: 14, fontWeight: '800', color: Colors.primary, letterSpacing: 1 },
+  successViewButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.primary, paddingVertical: 14, borderRadius: 12, marginTop: 20, width: '100%' },
+  successViewButtonText: { color: '#111', fontWeight: '700', fontSize: 16 },
 });
