@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Alert,
   Animated as RNAnimated,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { FadeInView } from '../../components/FadeInView';
 import { Image } from 'expo-image';
@@ -36,6 +38,22 @@ function getPrimaryType(complexId: string): string {
   const pin = PIN_POSITIONS.find(p => p.id === complexId);
   return pin?.primaryType || 'futbol5';
 }
+
+// Haversine formula for distance calculation (km)
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
+// Mock user location for distance calculation when real location not available
+const MOCK_USER_LOCATION = { latitude: -12.09, longitude: -77.04 };
 
 function SportIcon({ type, size = 14 }: { type: string; size?: number }) {
   const s = size;
@@ -159,6 +177,13 @@ export default function MapScreen() {
   const selectedComplex = selectedPinId
     ? mockComplexes.find((c) => c.id === selectedPinId)
     : null;
+
+  // Calculate distance for a complex
+  const getDistance = useCallback((complex: typeof mockComplexes[0]) => {
+    const userLat = userLocation?.latitude ?? MOCK_USER_LOCATION.latitude;
+    const userLon = userLocation?.longitude ?? MOCK_USER_LOCATION.longitude;
+    return haversineDistance(userLat, userLon, complex.lat, complex.lng);
+  }, [userLocation]);
 
   const handlePinPress = (id: string) => {
     setSelectedPinId(selectedPinId === id ? null : id);
@@ -309,6 +334,17 @@ export default function MapScreen() {
           <Ionicons name={isLocating ? 'refresh' : 'locate'} size={24} color={isLocating ? '#94A3B8' : '#1E293B'} />
         </Pressable>
 
+        {/* Ruta más corta button */}
+        {selectedComplex && (
+          <Pressable style={[styles.routeButton, { top: (insets.top || 12) + 112 }]} onPress={() => {
+            const dist = getDistance(selectedComplex);
+            const mins = Math.round(dist * 5 + 3);
+            Alert.alert('Ruta más corta', `📍 A ~${dist} km de tu ubicación\n🚗 ~${mins} min en auto`);
+          }}>
+            <Ionicons name="navigate" size={20} color="#111" />
+          </Pressable>
+        )}
+
         {/* Filter button */}
         <Pressable style={[styles.filterButton, { top: (insets.top || 12) + 64 }]} onPress={() => setShowFilter(!showFilter)}>
           <Ionicons name="funnel-outline" size={22} color={showFilter ? Colors.primary : '#1E293B'} />
@@ -335,6 +371,44 @@ export default function MapScreen() {
                   {activeFilter === f.id && <Ionicons name="checkmark" size={16} color={Colors.primary} />}
                 </Pressable>
               ))}
+            </View>
+          </FadeInView>
+        )}
+
+        {/* Search results list */}
+        {searchQuery.length > 0 && filteredComplexes.length > 0 && (
+          <FadeInView type="fadeInDown" duration={200} style={[styles.searchResultsContainer, { top: (insets.top || 12) + 56 }]}>
+            <View style={[styles.searchResultsInner, { backgroundColor: isDark ? 'rgba(20,20,20,0.95)' : 'rgba(255,255,255,0.95)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }]}>
+              <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled style={{ maxHeight: 280 }}>
+                {filteredComplexes.map((complex) => {
+                  const dist = getDistance(complex);
+                  return (
+                    <Pressable
+                      key={complex.id}
+                      style={[styles.searchResultItem, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }]}
+                      onPress={() => {
+                        setSelectedPinId(complex.id);
+                        setSearchQuery('');
+                      }}
+                    >
+                      <Image source={{ uri: complex.image }} style={styles.searchResultImage} contentFit="cover" />
+                      <View style={styles.searchResultInfo}>
+                        <Text style={[styles.searchResultName, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{complex.name}</Text>
+                        <View style={styles.searchResultMeta}>
+                          <Ionicons name="location" size={12} color={Colors.primary} />
+                          <Text style={[styles.searchResultDistrict, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{complex.district}</Text>
+                          <Ionicons name="star" size={12} color={Colors.star} />
+                          <Text style={[styles.searchResultRating, { color: isDark ? Colors.textDark : Colors.text }]}>{complex.rating}</Text>
+                        </View>
+                        <Text style={[styles.searchResultPrice, { color: Colors.primary }]}>S/{complex.minPrice} - S/{complex.maxPrice}/h</Text>
+                      </View>
+                      <View style={styles.searchResultDistance}>
+                        <Text style={[styles.searchResultDistText, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>{dist} km</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
           </FadeInView>
         )}
@@ -383,10 +457,19 @@ export default function MapScreen() {
                       ))}
                   </View>
                 </View>
+                <View style={styles.sheetPriceRange}>
+                  <Text style={[styles.sheetPriceRangeText, { color: Colors.primary }]}>S/{selectedComplex.minPrice} - S/{selectedComplex.maxPrice}/h</Text>
+                  <Text style={[styles.sheetAvailability, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Horarios disponibles</Text>
+                </View>
+                {/* Distance indicator */}
+                <View style={styles.sheetDistanceRow}>
+                  <Ionicons name="navigate" size={13} color={Colors.primary} />
+                  <Text style={[styles.sheetDistanceText, { color: Colors.primary }]}>📍 A ~{getDistance(selectedComplex)} km de tu ubicación</Text>
+                </View>
               </View>
             </View>
             <View style={styles.sheetButtons}>
-              <Pressable
+              <TouchableOpacity
                 style={[styles.sheetViewButton, { backgroundColor: Colors.primary }]}
                 onPress={() => {
                   const { selectComplex } = useAppStore.getState();
@@ -395,8 +478,21 @@ export default function MapScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.sheetViewButtonText}>Ver cancha</Text>
-              </Pressable>
+                <Ionicons name="eye-outline" size={16} color="#111" />
+                <Text style={styles.sheetViewButtonText}>Ver detalle</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sheetBookButton, { backgroundColor: isDark ? Colors.surfaceDark : '#FFFFFF', borderColor: isDark ? Colors.borderDark : Colors.border }]}
+                onPress={() => {
+                  const { selectComplex } = useAppStore.getState();
+                  selectComplex(selectedComplex.id);
+                  router.push('/schedule');
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
+                <Text style={[styles.sheetBookButtonText, { color: Colors.primary }]}>Reservar</Text>
+              </TouchableOpacity>
               <Pressable onPress={handleCloseSheet} style={[styles.sheetCloseBtn, { borderColor: isDark ? Colors.borderDark : Colors.border }]}>
                 <Text style={[styles.sheetCloseText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Cerrar</Text>
               </Pressable>
@@ -494,11 +590,43 @@ const styles = StyleSheet.create({
   sheetTypeBadges: { flexDirection: 'row', gap: 4, flex: 1, flexWrap: 'wrap' },
   typeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   typeBadgeText: { fontSize: 10, fontWeight: '600' },
-  sheetButtons: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  sheetViewButton: { flex: 2, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  sheetViewButtonText: { color: '#111', fontWeight: '700', fontSize: 15 },
-  sheetCloseBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1 },
-  sheetCloseText: { fontSize: 15, fontWeight: '500' },
+  sheetButtons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sheetViewButton: { flex: 2, flexDirection: 'row', paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  sheetViewButtonText: { color: '#111', fontWeight: '700', fontSize: 14 },
+  sheetBookButton: { flex: 2, flexDirection: 'row', paddingVertical: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1 },
+  sheetBookButtonText: { fontWeight: '700', fontSize: 14 },
+  sheetCloseBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
+  sheetCloseText: { fontSize: 14, fontWeight: '500' },
+
+  // Route button
+  routeButton: {
+    position: 'absolute', right: 16, width: 44, height: 44, borderRadius: 22,
+    backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', zIndex: 20,
+    shadowColor: Colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+
+  // Search results list
+  searchResultsContainer: { position: 'absolute', left: 16, right: 16, zIndex: 25 },
+  searchResultsInner: { borderRadius: 14, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  searchResultItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1 },
+  searchResultImage: { width: 44, height: 44, borderRadius: 10, backgroundColor: '#E2E8F0' },
+  searchResultInfo: { flex: 1, gap: 2 },
+  searchResultName: { fontSize: 13, fontWeight: '600' },
+  searchResultMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  searchResultDistrict: { fontSize: 11 },
+  searchResultRating: { fontSize: 11, fontWeight: '600' },
+  searchResultPrice: { fontSize: 11, fontWeight: '700' },
+  searchResultDistance: { alignItems: 'flex-end', justifyContent: 'center', paddingLeft: 4 },
+  searchResultDistText: { fontSize: 11, fontWeight: '600' },
+
+  // Sheet price range
+  sheetPriceRange: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  sheetPriceRangeText: { fontSize: 12, fontWeight: '700' },
+  sheetAvailability: { fontSize: 10 },
+
+  // Sheet distance
+  sheetDistanceRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  sheetDistanceText: { fontSize: 11, fontWeight: '600' },
 
   // Legend
   legendContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingVertical: 12, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },

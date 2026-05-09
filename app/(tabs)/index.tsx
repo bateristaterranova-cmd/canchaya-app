@@ -11,6 +11,8 @@ import {
   Modal,
   Platform,
   KeyboardAvoidingView,
+  RefreshControl,
+  Animated as RNAnimated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +26,7 @@ import {
   promotionalBanners,
   districts,
   sportTypes,
+  popularCategories,
   formatPrice,
   getComplexById,
   getCourtTypeLabel,
@@ -228,6 +231,31 @@ export default function HomeScreen() {
   const [sortBy, setSortBy] = useState<'popular' | 'price' | 'near'>('popular');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Skeleton shimmer animation
+  const shimmerAnim = useRef(new RNAnimated.Value(0)).current;
+  useEffect(() => {
+    RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(shimmerAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        RNAnimated.timing(shimmerAnim, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  const shimmerOpacity = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+  // Simulate initial loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
 
   // Search history debounce: add to history after 1.5s of 3+ chars
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -305,6 +333,7 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top || 12 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       >
         {/* Header */}
         <FadeInView type="fadeIn" duration={400} style={styles.header}>
@@ -332,6 +361,47 @@ export default function HomeScreen() {
           </View>
         </FadeInView>
 
+        {/* Clima actual */}
+        <FadeInView type="fadeInDown" duration={400} delay={50}>
+          <GlassCard style={styles.weatherCard}>
+            <View style={styles.weatherRow}>
+              <View style={[styles.weatherIconWrap, { backgroundColor: isDark ? 'rgba(132,204,22,0.15)' : 'rgba(132,204,22,0.1)' }]}>
+                <Ionicons name="sunny" size={24} color="#FBBF24" />
+              </View>
+              <View style={styles.weatherInfo}>
+                <Text style={[styles.weatherTemp, { color: isDark ? Colors.textDark : Colors.text }]}>24°C</Text>
+                <Text style={[styles.weatherCondition, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Parcialmente nublado · Lima</Text>
+              </View>
+              <View style={styles.weatherDetails}>
+                <View style={styles.weatherDetail}>
+                  <Ionicons name="water-outline" size={14} color={Colors.info} />
+                  <Text style={[styles.weatherDetailText, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>62%</Text>
+                </View>
+                <View style={styles.weatherDetail}>
+                  <Ionicons name="speedometer-outline" size={14} color={Colors.textTertiary} />
+                  <Text style={[styles.weatherDetailText, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>12 km/h</Text>
+                </View>
+              </View>
+            </View>
+          </GlassCard>
+        </FadeInView>
+
+        {/* Categorías populares */}
+        <FadeInView type="fadeInDown" duration={400} delay={75}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
+            {popularCategories.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                style={[styles.categoryPill, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : `${cat.color}12`, borderColor: isDark ? 'rgba(255,255,255,0.1)' : `${cat.color}30` }]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+                <Text style={[styles.categoryLabel, { color: isDark ? Colors.textDark : cat.color }]}>{cat.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </FadeInView>
+
         {/* Promo Banner */}
         <FadeInView type="fadeInDown" duration={400} delay={100}>
           <View style={styles.bannerContainer}>
@@ -349,8 +419,10 @@ export default function HomeScreen() {
               renderItem={({ item }) => (
                 <GlassCard style={[styles.bannerCard, { width: BANNER_WIDTH }]} padding={0}>
                   <View style={[styles.bannerInner, { backgroundColor: item.gradient[0] }]}>
+                    <View style={styles.bannerGradientOverlay} />
                     <View style={styles.bannerDecor1} />
                     <View style={styles.bannerDecor2} />
+                    <View style={styles.bannerDecor3} />
                     <Text style={styles.bannerEmoji}>{item.emoji}</Text>
                     <Text style={styles.bannerTitle}>{item.title}</Text>
                     <TouchableOpacity style={styles.bannerButton} activeOpacity={0.8}>
@@ -528,8 +600,24 @@ export default function HomeScreen() {
           <Text style={[styles.favToggleText, showFavoritesOnly && { color: Colors.heart }]}>Solo favoritos</Text>
         </TouchableOpacity>
 
-        {/* Venue cards or empty */}
-        {filteredComplexes.length === 0 ? (
+        {/* Venue cards, skeleton, or empty */}
+        {isLoading ? (
+          // Skeleton loading placeholders
+          [1, 2, 3].map((i) => (
+            <View key={i} style={styles.skeletonCard}>
+              <RNAnimated.View style={[styles.skeletonImage, { opacity: shimmerOpacity }]} />
+              <View style={styles.skeletonContent}>
+                <RNAnimated.View style={[styles.skeletonLine, { width: '70%', opacity: shimmerOpacity }]} />
+                <RNAnimated.View style={[styles.skeletonLine, { width: '40%', opacity: shimmerOpacity }]} />
+                <View style={styles.skeletonRow}>
+                  <RNAnimated.View style={[styles.skeletonBadge, { opacity: shimmerOpacity }]} />
+                  <RNAnimated.View style={[styles.skeletonBadge, { opacity: shimmerOpacity }]} />
+                </View>
+                <RNAnimated.View style={[styles.skeletonLine, { width: '50%', opacity: shimmerOpacity }]} />
+              </View>
+            </View>
+          ))
+        ) : filteredComplexes.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: isDark ? Colors.surfaceDark : Colors.surface }]}>
               <Ionicons name="search-outline" size={40} color={Colors.textTertiary} />
@@ -665,10 +753,12 @@ const styles = StyleSheet.create({
   bannerContainer: { marginBottom: 16 },
   bannerCard: { overflow: 'hidden', borderRadius: 16 },
   bannerInner: { padding: 8, borderRadius: 16, overflow: 'hidden', minHeight: 40, justifyContent: 'center' },
+  bannerGradientOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, width: '40%', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16 },
   bannerDecor1: { position: 'absolute', top: -30, right: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.15)' },
   bannerDecor2: { position: 'absolute', bottom: -20, left: 30, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.1)' },
+  bannerDecor3: { position: 'absolute', top: 10, right: 60, width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
   bannerEmoji: { fontSize: 16, marginBottom: 1 },
-  bannerTitle: { fontSize: 11, fontWeight: '700', color: '#FFF', marginBottom: 2 },
+  bannerTitle: { fontSize: 11, fontWeight: '700', color: '#FFF', marginBottom: 2, textShadowColor: 'rgba(0,0,0,0.2)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   bannerButton: { backgroundColor: 'rgba(0,0,0,0.3)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 16, alignSelf: 'flex-start' },
   bannerButtonText: { color: '#FFF', fontWeight: '600', fontSize: 10 },
   bannerDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 10 },
@@ -762,4 +852,29 @@ const styles = StyleSheet.create({
   notifUnreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary },
   notifMessage: { fontSize: 12, lineHeight: 16 },
   notifTime: { fontSize: 11, color: Colors.textTertiary, marginTop: 2 },
+
+  // Weather card
+  weatherCard: { marginBottom: 12 },
+  weatherRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  weatherIconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  weatherInfo: { flex: 1 },
+  weatherTemp: { fontSize: 20, fontWeight: '800' },
+  weatherCondition: { fontSize: 12, marginTop: 1 },
+  weatherDetails: { gap: 4 },
+  weatherDetail: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  weatherDetailText: { fontSize: 11, fontWeight: '500' },
+
+  // Categories
+  categoriesScroll: { marginBottom: 12, marginHorizontal: -16, paddingHorizontal: 16 },
+  categoryPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1 },
+  categoryEmoji: { fontSize: 16 },
+  categoryLabel: { fontSize: 13, fontWeight: '600' },
+
+  // Skeleton
+  skeletonCard: { borderRadius: 16, overflow: 'hidden', marginBottom: 14, backgroundColor: 'rgba(132,204,22,0.06)' },
+  skeletonImage: { width: '100%', aspectRatio: 16 / 9, backgroundColor: Colors.border },
+  skeletonContent: { padding: 12, gap: 8 },
+  skeletonLine: { height: 14, borderRadius: 4, backgroundColor: Colors.border },
+  skeletonRow: { flexDirection: 'row', gap: 6 },
+  skeletonBadge: { width: 60, height: 20, borderRadius: 8, backgroundColor: Colors.border },
 });

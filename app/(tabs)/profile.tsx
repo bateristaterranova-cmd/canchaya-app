@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FadeInView } from '../../components/FadeInView';
 
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../lib/store';
 import { mockComplexes, formatPrice, getCourtTypeLabel } from '../../lib/mock-data';
 import { Colors, Shadows } from '../../constants/theme';
@@ -70,6 +71,11 @@ export default function ProfileScreen() {
   const [editName, setEditName] = useState(user?.name || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
   const [editPhone, setEditPhone] = useState(user?.phone || '');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notifReminders, setNotifReminders] = useState(true);
+  const [notifPromos, setNotifPromos] = useState(true);
+  const [notifCourtUpdates, setNotifCourtUpdates] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('Español');
 
   useEffect(() => {
     if (user) {
@@ -234,65 +240,195 @@ export default function ProfileScreen() {
 
         {/* ── Loyalty Program Section ──────────────────────────────────── */}
         <FadeInView type="fadeInDown" duration={400} delay={100}>
-          <GlassCard style={styles.loyaltyCard}>
-            <View style={styles.loyaltyHeader}>
-              <View style={styles.loyaltyTitleRow}>
-                <Ionicons name="ribbon" size={22} color={Colors.primary} />
-                <Text style={[styles.loyaltyTitle, { color: isDark ? Colors.textDark : Colors.text }]}>
-                  Programa de Lealtad
-                </Text>
-              </View>
-              <View style={[styles.tierBadge, { backgroundColor: Colors.primaryBg }]}>
-                <Text style={[styles.tierBadgeText, { color: Colors.primaryDark }]}>
-                  {currentTier}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.pointsRow}>
-              <Text style={[styles.pointsLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-                Puntos acumulados
-              </Text>
-              <Text style={[styles.pointsValue, { color: Colors.primary }]}>
-                {totalPoints.toLocaleString()} pts
-              </Text>
-            </View>
-
-            <View style={styles.progressContainer}>
-              <View style={[styles.progressBg, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]}>
-                <View style={[styles.progressFill, { width: `${progressToNext}%`, backgroundColor: Colors.primary }]} />
-              </View>
-              <Text style={[styles.progressLabel, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>
-                {totalPoints} / {nextTierPoints} pts para {currentTier === 'Oro' ? 'Diamante' : currentTier === 'Plata' ? 'Oro' : 'Plata'}
-              </Text>
-            </View>
-
-            <View style={styles.benefitsContainer}>
-              {benefits.map((benefit, idx) => (
-                <View key={idx} style={styles.benefitRow}>
-                  <View style={[styles.benefitIcon, { backgroundColor: benefit.unlocked ? Colors.primaryBg : 'rgba(148,163,184,0.1)' }]}>
-                    <Ionicons
-                      name={benefit.icon as any}
-                      size={16}
-                      color={benefit.unlocked ? Colors.primary : '#94A3B8'}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.benefitText,
-                      {
-                        color: benefit.unlocked
-                          ? isDark ? Colors.textDark : Colors.text
-                          : isDark ? Colors.textTertiaryDark : Colors.textTertiary,
-                      },
-                    ]}
-                  >
-                    {benefit.text}
+          <View style={styles.loyaltyCardEnhanced}>
+            <LinearGradient
+              colors={[Colors.primaryDark, Colors.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+            {/* Semi-transparent card pattern overlay */}
+            <View style={styles.loyaltyPatternOverlay} pointerEvents="none" />
+            <View style={styles.loyaltyContent}>
+              <View style={styles.loyaltyHeader}>
+                <View style={styles.loyaltyTitleRow}>
+                  <Ionicons name="ribbon" size={22} color="#FFF" />
+                  <Text style={styles.loyaltyTitleLight}>
+                    Programa de Lealtad
                   </Text>
-                  {benefit.unlocked && (
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                  )}
                 </View>
+                <View style={styles.tierBadgeLight}>
+                  <Text style={styles.tierBadgeTextLight}>
+                    {currentTier}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.cardNumberRow}>
+                <Text style={styles.cardNumberLabelLight}>Nº de tarjeta</Text>
+                <Text style={styles.cardNumberValueLight}>CYA-2026-0001</Text>
+              </View>
+
+              <View style={styles.pointsRow}>
+                <Text style={styles.pointsLabelLight}>
+                  Puntos acumulados
+                </Text>
+                <Text style={styles.pointsValueLight}>
+                  {totalPoints.toLocaleString()} pts
+                </Text>
+              </View>
+
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBgLight}>
+                  <View style={[styles.progressFill, { width: `${progressToNext}%`, backgroundColor: '#FFF' }]} />
+                </View>
+                <Text style={styles.progressLabelLight}>
+                  {totalPoints} / {nextTierPoints} pts para {currentTier === 'Oro' ? 'Diamante' : currentTier === 'Plata' ? 'Oro' : 'Plata'}
+                </Text>
+              </View>
+
+              <View style={styles.benefitsContainer}>
+                {benefits.map((benefit, idx) => (
+                  <View key={idx} style={styles.benefitRow}>
+                    <View style={[styles.benefitIcon, { backgroundColor: benefit.unlocked ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)' }]}>
+                      <Ionicons
+                        name={benefit.icon as any}
+                        size={16}
+                        color={benefit.unlocked ? '#FFF' : 'rgba(255,255,255,0.4)'}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.benefitTextLight,
+                        { opacity: benefit.unlocked ? 1 : 0.5 },
+                      ]}
+                    >
+                      {benefit.text}
+                    </Text>
+                    {benefit.unlocked && (
+                      <Ionicons name="checkmark-circle" size={16} color="#FFF" />
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        </FadeInView>
+
+        {/* ── Mis métodos de pago ───────────────────────────────────── */}
+        <FadeInView type="fadeInDown" duration={400} delay={115}>
+          <GlassCard style={styles.paymentMethodsCard}>
+            <View style={styles.paymentMethodsHeader}>
+              <Ionicons name="card" size={20} color={Colors.primary} />
+              <Text style={[styles.paymentMethodsTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Mis métodos de pago</Text>
+            </View>
+            <View style={styles.paymentCardsList}>
+              <View style={[styles.savedCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}>
+                <View style={[styles.savedCardIcon, { backgroundColor: '#3B82F618' }]}>
+                  <Ionicons name="card" size={18} color="#3B82F6" />
+                </View>
+                <View style={styles.savedCardInfo}>
+                  <Text style={[styles.savedCardName, { color: isDark ? Colors.textDark : Colors.text }]}>Visa •••• 4242</Text>
+                </View>
+                <Ionicons name="create-outline" size={16} color={isDark ? Colors.textTertiaryDark : Colors.textTertiary} />
+              </View>
+              <View style={[styles.savedCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)' }]}>
+                <View style={[styles.savedCardIcon, { backgroundColor: '#F59E0B18' }]}>
+                  <Ionicons name="card" size={18} color="#F59E0B" />
+                </View>
+                <View style={styles.savedCardInfo}>
+                  <Text style={[styles.savedCardName, { color: isDark ? Colors.textDark : Colors.text }]}>Mastercard •••• 8888</Text>
+                </View>
+                <Ionicons name="create-outline" size={16} color={isDark ? Colors.textTertiaryDark : Colors.textTertiary} />
+              </View>
+              <TouchableOpacity
+                style={[styles.addPaymentBtn, { borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)', backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                <Text style={styles.addPaymentText}>Agregar método</Text>
+              </TouchableOpacity>
+            </View>
+          </GlassCard>
+        </FadeInView>
+
+        {/* ── Notificaciones ────────────────────────────────────── */}
+        <FadeInView type="fadeInDown" duration={400} delay={130}>
+          <GlassCard style={styles.notifToggleCard}>
+            <View style={styles.notifSectionHeader}>
+              <View style={[styles.notifToggleIcon, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+                <Ionicons name="notifications" size={18} color="#F59E0B" />
+              </View>
+              <Text style={[styles.notifSectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Notificaciones</Text>
+            </View>
+            <View style={styles.notifTogglesList}>
+              <View style={styles.notifToggleRow}>
+                <View style={styles.notifToggleLeft}>
+                  <Ionicons name="alarm-outline" size={18} color={isDark ? Colors.textSecondaryDark : Colors.textSecondary} />
+                  <Text style={[styles.notifToggleLabel, { color: isDark ? Colors.textDark : Colors.text }]}>Recordatorios de reserva</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.notifToggleBtn, { backgroundColor: notifReminders ? Colors.primary : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0') }]}
+                  onPress={() => setNotifReminders(!notifReminders)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.notifToggleKnob, notifReminders && styles.notifToggleKnobActive]} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.notifToggleRow}>
+                <View style={styles.notifToggleLeft}>
+                  <Ionicons name="pricetag-outline" size={18} color={isDark ? Colors.textSecondaryDark : Colors.textSecondary} />
+                  <Text style={[styles.notifToggleLabel, { color: isDark ? Colors.textDark : Colors.text }]}>Ofertas y promociones</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.notifToggleBtn, { backgroundColor: notifPromos ? Colors.primary : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0') }]}
+                  onPress={() => setNotifPromos(!notifPromos)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.notifToggleKnob, notifPromos && styles.notifToggleKnobActive]} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.notifToggleRow}>
+                <View style={styles.notifToggleLeft}>
+                  <Ionicons name="tennisball-outline" size={18} color={isDark ? Colors.textSecondaryDark : Colors.textSecondary} />
+                  <Text style={[styles.notifToggleLabel, { color: isDark ? Colors.textDark : Colors.text }]}>Actualizaciones de canchas</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.notifToggleBtn, { backgroundColor: notifCourtUpdates ? Colors.primary : (isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0') }]}
+                  onPress={() => setNotifCourtUpdates(!notifCourtUpdates)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.notifToggleKnob, notifCourtUpdates && styles.notifToggleKnobActive]} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </GlassCard>
+        </FadeInView>
+
+        {/* ── Idioma ────────────────────────────────────────── */}
+        <FadeInView type="fadeInDown" duration={400} delay={145}>
+          <GlassCard style={styles.languageCard}>
+            <View style={styles.languageHeader}>
+              <View style={[styles.languageIcon, { backgroundColor: Colors.primaryBg }]}>
+                <Ionicons name="language" size={18} color={Colors.primary} />
+              </View>
+              <Text style={[styles.languageTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Idioma</Text>
+            </View>
+            <View style={styles.languageOptions}>
+              {[
+                { code: 'Español', flag: '🇪🇸' },
+                { code: 'English', flag: '🇬🇧' },
+                { code: 'Português', flag: '🇧🇷' },
+              ].map((lang) => (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[styles.languageOption, selectedLanguage === lang.code && styles.languageOptionActive, { borderColor: selectedLanguage === lang.code ? Colors.primary : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)') }]}
+                  onPress={() => setSelectedLanguage(lang.code)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.languageFlag}>{lang.flag}</Text>
+                  <Text style={[styles.languageOptionText, { color: selectedLanguage === lang.code ? Colors.primary : (isDark ? Colors.textSecondaryDark : Colors.textSecondary) }]}>{lang.code}</Text>
+                </TouchableOpacity>
               ))}
             </View>
           </GlassCard>
@@ -637,7 +773,59 @@ const styles = StyleSheet.create({
   referralCopyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   referralCopyText: { fontSize: 12, fontWeight: '700', color: '#111' },
 
-  // Loyalty
+  // Loyalty enhanced
+  loyaltyCardEnhanced: { borderRadius: 16, marginBottom: 16, overflow: 'hidden', position: 'relative', minHeight: 260 },
+  loyaltyPatternOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.08)' },
+  loyaltyContent: { padding: 16, position: 'relative', zIndex: 1 },
+  loyaltyTitleLight: { fontSize: 17, fontWeight: '700', color: '#FFF' },
+  tierBadgeLight: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)' },
+  tierBadgeTextLight: { fontSize: 12, fontWeight: '700', color: '#FFF' },
+  cardNumberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 8 },
+  cardNumberLabelLight: { fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
+  cardNumberValueLight: { fontSize: 12, fontWeight: '700', color: '#FFF', letterSpacing: 1 },
+  pointsLabelLight: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+  pointsValueLight: { fontSize: 16, fontWeight: '800', color: '#FFF' },
+  progressBgLight: { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.2)' },
+  progressLabelLight: { fontSize: 11, marginTop: 4, color: 'rgba(255,255,255,0.6)' },
+  benefitTextLight: { flex: 1, fontSize: 13, fontWeight: '500', color: '#FFF' },
+
+  // Payment methods
+  paymentMethodsCard: { marginBottom: 16 },
+  paymentMethodsHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  paymentMethodsTitle: { fontSize: 16, fontWeight: '700' },
+  paymentCardsList: { gap: 8 },
+  savedCard: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
+  savedCardIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  savedCardInfo: { flex: 1 },
+  savedCardName: { fontSize: 14, fontWeight: '600' },
+  addPaymentBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed' },
+  addPaymentText: { fontSize: 14, fontWeight: '600', color: Colors.primary },
+
+  // Notification toggle
+  notifToggleCard: { marginBottom: 16 },
+  notifSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  notifSectionTitle: { fontSize: 16, fontWeight: '700' },
+  notifTogglesList: { gap: 12 },
+  notifToggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  notifToggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  notifToggleIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  notifToggleLabel: { fontSize: 14, fontWeight: '500' },
+  notifToggleBtn: { width: 44, height: 24, borderRadius: 12, justifyContent: 'center', paddingHorizontal: 2 },
+  notifToggleKnob: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFF' },
+  notifToggleKnobActive: { alignSelf: 'flex-end' },
+
+  // Language
+  languageCard: { marginBottom: 16 },
+  languageHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  languageIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  languageTitle: { fontSize: 16, fontWeight: '700' },
+  languageOptions: { flexDirection: 'row', gap: 8 },
+  languageOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5 },
+  languageOptionActive: { backgroundColor: Colors.primaryBg },
+  languageOptionText: { fontSize: 13, fontWeight: '600' },
+  languageFlag: { fontSize: 16 },
+
+  // Loyalty (keep old names for backward compatibility)
   loyaltyCard: { marginBottom: 16 },
   loyaltyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   loyaltyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -395,3 +395,37 @@ export function formatPrice(price: number): string {
 export function getTodayDateString(): string {
   return new Date().toISOString().split("T")[0];
 }
+
+// ─── Promotional Banners ──────────────────────────────────────────────────────
+export const promotionalBanners = [
+  { id: 1, title: '50% OFF en San Isidro', emoji: '🎉', buttonText: 'Reservar', gradient: ['#84CC16', '#65A30D'] },
+  { id: 2, title: 'Canchas techadas disponibles', emoji: '🏟️', buttonText: 'Ver más', gradient: ['#3B82F6', '#1D4ED8'] },
+  { id: 3, title: 'Pádel: 2x1 los domingos', emoji: '🏓', buttonText: 'Aprovechar', gradient: ['#8B5CF6', '#6D28D9'] },
+];
+
+// ─── Districts ────────────────────────────────────────────────────────────────
+export const districts = ['Todos', 'Miraflores', 'San Isidro', 'Surco', 'La Molina', 'San Borja', 'Barranco', 'Pueblo Libre', 'Jesús María'];
+
+// ─── Sport Types ──────────────────────────────────────────────────────────────
+export const sportTypes = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'futbol5', label: 'Fútbol 5' },
+  { id: 'futbol7', label: 'Fútbol 7' },
+  { id: 'futbol11', label: 'Fútbol 11' },
+  { id: 'padel', label: 'Pádel' },
+];
+
+// ─── Popular Categories ───────────────────────────────────────────────────────
+export const popularCategories = [
+  { id: 'futbol', label: 'Fútbol', emoji: '⚽', color: '#84CC16' },
+  { id: 'padel', label: 'Pádel', emoji: '🏓', color: '#8B5CF6' },
+  { id: 'basket', label: 'Basket', emoji: '🏀', color: '#F97316' },
+  { id: 'voley', label: 'Vóley', emoji: '🏐', color: '#3B82F6' },
+];
+
+// ─── Available Coupons ────────────────────────────────────────────────────────
+export const mockCoupons = [
+  { id: 'coupon-1', code: 'CANCHAYA10', discount: 10, description: '10% en tu primera reserva', expiresAt: '2026-06-30', used: false },
+  { id: 'coupon-2', code: 'VERANO25', discount: 25, description: '25% en canchas techadas', expiresAt: '2026-05-31', used: false },
+  { id: 'coupon-3', code: 'AMIGO15', discount: 15, description: '15% por referir un amigo', expiresAt: '2026-07-15', used: true },
+];

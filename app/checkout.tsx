@@ -21,6 +21,7 @@ import {
   getCourtById,
   formatPrice,
   mockTimeSlots,
+  mockCoupons,
 } from '../lib/mock-data';
 import { Colors, Shadows } from '../constants/theme';
 import { GlassCard } from '../components/GlassCard';
@@ -371,6 +372,23 @@ export default function CheckoutScreen() {
           {/* Payment Methods */}
           <FadeInView type="fadeInDown" duration={300} delay={300} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Método de pago</Text>
+
+            {/* Método de pago guardado */}
+            <GlassCard style={styles.savedPaymentCard}>
+              <View style={styles.savedPaymentRow}>
+                <View style={[styles.savedPaymentIcon, { backgroundColor: '#3B82F618' }]}>
+                  <Ionicons name="card" size={20} color="#3B82F6" />
+                </View>
+                <View style={styles.savedPaymentInfo}>
+                  <Text style={[styles.savedPaymentLabel, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Última tarjeta usada</Text>
+                  <Text style={[styles.savedPaymentName, { color: isDark ? Colors.textDark : Colors.text }]}>Visa •••• 4242</Text>
+                </View>
+                <TouchableOpacity style={[styles.useCardBtn, { backgroundColor: Colors.primaryBg }]} onPress={() => setPaymentMethod('tarjeta')} activeOpacity={0.7}>
+                  <Text style={styles.useCardText}>Usar</Text>
+                </TouchableOpacity>
+              </View>
+            </GlassCard>
+
             <View style={styles.paymentMethods}>
               {PAYMENT_METHODS.map((method) => {
                 const isSelected = paymentMethod === method.id;
@@ -390,7 +408,9 @@ export default function CheckoutScreen() {
                   >
                     <View style={styles.paymentCardLeft}>
                       <View style={[styles.radioOuter, { borderColor: isSelected ? Colors.primary : isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1' }]}>
-                        {isSelected && <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.primary }} />}
+                        {isSelected ? (
+                          <Ionicons name="checkmark" size={14} color={Colors.primary} />
+                        ) : null}
                       </View>
                       <View style={[styles.paymentIcon, { backgroundColor: `${method.accentColor}18` }]}>
                         <Ionicons name={method.icon as any} size={22} color={method.accentColor} />
@@ -401,6 +421,60 @@ export default function CheckoutScreen() {
                 );
               })}
             </View>
+          </FadeInView>
+
+          {/* Tus cupones disponibles */}
+          <FadeInView type="fadeInDown" duration={300} delay={350} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Tus cupones disponibles</Text>
+            {mockCoupons.map((coupon) => (
+              <GlassCard key={coupon.id} style={[styles.couponCard, coupon.used && { opacity: 0.5 }]}>
+                <View style={styles.couponRow}>
+                  <View style={styles.couponLeft}>
+                    <View style={[styles.couponCodePill, { backgroundColor: coupon.used ? 'rgba(148,163,184,0.1)' : Colors.primaryBg }]}>
+                      <Ionicons name="pricetag" size={14} color={coupon.used ? '#94A3B8' : Colors.primary} />
+                      <Text style={[styles.couponCodeText, { color: coupon.used ? '#94A3B8' : Colors.primary }]}>{coupon.code}</Text>
+                    </View>
+                    <View style={[styles.couponDiscountBadge, { backgroundColor: coupon.used ? 'rgba(148,163,184,0.1)' : 'rgba(34,197,94,0.12)' }]}>
+                      <Text style={[styles.couponDiscountText, { color: coupon.used ? '#94A3B8' : '#22C55E' }]}>{coupon.used ? 'Usado' : `-${coupon.discount}%`}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.couponDesc, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{coupon.description}</Text>
+                  {!coupon.used ? (
+                    <TouchableOpacity
+                      style={[styles.couponApplyBtn, { backgroundColor: Colors.primary }]}
+                      onPress={() => applyPromoCode(coupon.code)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.couponApplyBtnText}>Aplicar</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </GlassCard>
+            ))}
+          </FadeInView>
+
+          {/* Política de cancelación */}
+          <FadeInView type="fadeInDown" duration={300} delay={375} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <GlassCard style={styles.cancellationCard}>
+              <View style={styles.cancellationHeader}>
+                <Ionicons name="shield-checkmark" size={20} color={Colors.primary} />
+                <Text style={[styles.cancellationTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Política de cancelación</Text>
+              </View>
+              <View style={styles.cancellationRules}>
+                <View style={styles.cancellationRule}>
+                  <Text style={styles.cancellationEmoji}>✅</Text>
+                  <Text style={[styles.cancellationText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Cancelación gratuita hasta 24h antes</Text>
+                </View>
+                <View style={styles.cancellationRule}>
+                  <Text style={styles.cancellationEmoji}>⚠️</Text>
+                  <Text style={[styles.cancellationText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>50% de reembolso entre 12-24h antes</Text>
+                </View>
+                <View style={styles.cancellationRule}>
+                  <Text style={styles.cancellationEmoji}>❌</Text>
+                  <Text style={[styles.cancellationText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Sin reembolso con menos de 12h de anticipación</Text>
+                </View>
+              </View>
+            </GlassCard>
           </FadeInView>
 
           {/* Security Badge */}
@@ -512,4 +586,35 @@ const styles = StyleSheet.create({
   bookingIdValue: { fontSize: 14, fontWeight: '800', color: Colors.primary, letterSpacing: 1 },
   successViewButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.primary, paddingVertical: 14, borderRadius: 12, marginTop: 20, width: '100%' },
   successViewButtonText: { color: '#111', fontWeight: '700', fontSize: 16 },
+
+  // Saved payment
+  savedPaymentCard: { marginBottom: 12 },
+  savedPaymentRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  savedPaymentIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  savedPaymentInfo: { flex: 1 },
+  savedPaymentLabel: { fontSize: 11, fontWeight: '500' },
+  savedPaymentName: { fontSize: 14, fontWeight: '700' },
+  useCardBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
+  useCardText: { color: Colors.primaryDark, fontWeight: '700', fontSize: 12 },
+
+  // Coupons
+  couponCard: { marginBottom: 8 },
+  couponRow: { gap: 8 },
+  couponLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  couponCodePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  couponCodeText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  couponDiscountBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  couponDiscountText: { fontSize: 11, fontWeight: '700' },
+  couponDesc: { fontSize: 12, marginTop: 2 },
+  couponApplyBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, alignSelf: 'flex-start', marginTop: 6 },
+  couponApplyBtnText: { color: '#111', fontWeight: '700', fontSize: 12 },
+
+  // Cancellation policy
+  cancellationCard: {},
+  cancellationHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  cancellationTitle: { fontSize: 14, fontWeight: '700' },
+  cancellationRules: { gap: 8 },
+  cancellationRule: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cancellationEmoji: { fontSize: 16, width: 24, textAlign: 'center' },
+  cancellationText: { fontSize: 13, fontWeight: '500', flex: 1 },
 });

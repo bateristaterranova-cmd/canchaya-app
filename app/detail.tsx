@@ -37,6 +37,24 @@ const amenityIcons: Record<string, string> = {
   'Cancha techada': 'umbrella-outline',
 };
 
+const amenityEmojis: Record<string, string> = {
+  'Estacionamiento': '🅿️',
+  'Vestuarios': '🚿',
+  'Duchas': '💧',
+  'Cafetería': '🥤',
+  'WiFi': '📶',
+  'Iluminación LED': '💡',
+  'Cancha techada': '🏟️',
+};
+
+const GALLERY_IMAGES = [
+  'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=400',
+  'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400',
+  'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=400',
+  'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=400',
+  'https://images.unsplash.com/photo-1627637577517-5a8c8393c1d2?w=400',
+];
+
 export default function DetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -101,19 +119,25 @@ export default function DetailScreen() {
           </View>
         </View>
 
-        {/* Gallery thumbnails */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-          {allImages.map((img, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => setActiveImageIndex(i)}
-              activeOpacity={0.8}
-              style={[styles.galleryThumb, activeImageIndex === i && { borderColor: Colors.primary, borderWidth: 2 }]}
-            >
-              <Image source={{ uri: img }} style={styles.galleryImage} contentFit="cover" />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {/* Galería de fotos */}
+        <FadeInView type="fadeInDown" duration={400}>
+          <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Galería de fotos</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
+            {GALLERY_IMAGES.map((img, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => {
+                  setActiveImageIndex(i);
+                  Alert.alert('Vista completa próximamente', 'La vista de pantalla completa estará disponible pronto.');
+                }}
+                activeOpacity={0.8}
+                style={[styles.galleryThumb, activeImageIndex === i && { borderColor: Colors.primary, borderWidth: 2 }]}
+              >
+                <Image source={{ uri: img }} style={styles.galleryImage} contentFit="cover" />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </FadeInView>
 
         {/* Info */}
         <FadeInView type="fadeInDown" duration={400}>
@@ -140,9 +164,9 @@ export default function DetailScreen() {
           </View>
         </FadeInView>
 
-        {/* Amenities */}
+        {/* Servicios incluidos */}
         <FadeInView type="fadeInDown" duration={400} delay={100}>
-          <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Servicios</Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Servicios incluidos</Text>
           <View style={styles.amenitiesGrid}>
             {complex.amenities.map((amenity) => (
               <GlassCard key={amenity} style={styles.amenityCard} padding={10}>
@@ -150,7 +174,10 @@ export default function DetailScreen() {
                   <View style={[styles.amenityIcon, { backgroundColor: Colors.primaryBg }]}>
                     <Ionicons name={(amenityIcons[amenity] || 'checkmark-circle-outline') as any} size={16} color={Colors.primary} />
                   </View>
-                  <Text style={[styles.amenityText, { color: isDark ? Colors.textDark : Colors.text }]}>{amenity}</Text>
+                  <View style={styles.amenityTextWrap}>
+                    <Text style={[styles.amenityEmoji]}>{amenityEmojis[amenity] || '✅'}</Text>
+                    <Text style={[styles.amenityText, { color: isDark ? Colors.textDark : Colors.text }]}>{amenity}</Text>
+                  </View>
                 </View>
               </GlassCard>
             ))}
@@ -221,13 +248,16 @@ export default function DetailScreen() {
             reviews.slice(0, 3).map((review) => (
               <GlassCard key={review.id} style={styles.reviewCard} padding={12}>
                 <View style={styles.reviewHeader}>
-                  <Image source={{ uri: review.userAvatar }} style={styles.reviewAvatar} contentFit="cover" />
+                  <View style={styles.reviewAvatarWrap}>
+                    <Image source={{ uri: review.userAvatar }} style={styles.reviewAvatar} contentFit="cover" />
+                  </View>
                   <View style={styles.reviewHeaderInfo}>
                     <Text style={[styles.reviewUserName, { color: isDark ? Colors.textDark : Colors.text }]}>{review.userName}</Text>
                     <View style={styles.reviewStars}>
                       {[1, 2, 3, 4, 5].map(s => (
-                        <Ionicons key={s} name={s <= review.rating ? 'star' : 'star-outline'} size={12} color={Colors.star} />
+                        <Ionicons key={s} name={s <= review.rating ? 'star' : 'star-outline'} size={14} color={Colors.star} />
                       ))}
+                      <Text style={styles.reviewRatingNum}>{review.rating}.0</Text>
                     </View>
                   </View>
                   <Text style={[styles.reviewDate, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>{review.date}</Text>
@@ -238,8 +268,26 @@ export default function DetailScreen() {
           )}
         </FadeInView>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Sticky bottom CTA */}
+      <View style={[styles.stickyBottom, { backgroundColor: isDark ? 'rgba(10,10,10,0.95)' : 'rgba(248,250,252,0.95)', borderTopColor: isDark ? Colors.borderDark : 'rgba(0,0,0,0.05)' }]}>
+        <View style={styles.stickyRow}>
+          <View>
+            <Text style={[styles.stickyLabel, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Desde</Text>
+            <Text style={[styles.stickyPrice, { color: isDark ? Colors.textDark : Colors.text }]}>{formatPrice(complex.minPrice)}/h</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.reserveNowBtn}
+            onPress={() => { if (complex.courts[0]) { selectCourt(complex.courts[0].id); router.push('/schedule'); } }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="calendar" size={18} color="#111" />
+            <Text style={styles.reserveNowText}>Reservar ahora</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -310,4 +358,16 @@ const styles = StyleSheet.create({
   reviewStars: { flexDirection: 'row', gap: 1 },
   reviewDate: { fontSize: 10 },
   reviewComment: { fontSize: 12, lineHeight: 18, marginTop: 6 },
+  reviewAvatarWrap: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', borderWidth: 2, borderColor: Colors.primary },
+  reviewRatingNum: { fontSize: 11, fontWeight: '700', color: Colors.star, marginLeft: 4 },
+  amenityTextWrap: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
+  amenityEmoji: { fontSize: 14 },
+
+  // Sticky bottom bar
+  stickyBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingVertical: 16, borderTopWidth: 1 },
+  stickyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  stickyLabel: { fontSize: 12 },
+  stickyPrice: { fontSize: 20, fontWeight: '800' },
+  reserveNowBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.primary, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, shadowColor: Colors.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
+  reserveNowText: { color: '#111', fontWeight: '700', fontSize: 16 },
 });

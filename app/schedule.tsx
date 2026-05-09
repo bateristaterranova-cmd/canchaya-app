@@ -24,6 +24,16 @@ import { GlassCard } from '../components/GlassCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Simulated availability counts per day index (0=today, 1=tomorrow, etc.)
+const DAY_AVAILABILITY = [9, 7, 3, 10, 5, 2, 8];
+
+function getAvailabilityColor(dayIndex: number): string {
+  const count = DAY_AVAILABILITY[dayIndex] ?? 5;
+  if (count === 0) return '#EF4444';
+  if (count <= 4) return '#94A3B8';
+  return '#22C55E';
+}
+
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -68,6 +78,10 @@ export default function ScheduleScreen() {
 
   const dateOptions = useMemo(() => getNext7Days(), []);
   const [activeMonth, setActiveMonth] = useState(dateOptions[0]?.monthName || '');
+  const dateOptionsWithAvailability = useMemo(() =>
+    dateOptions.map((opt, idx) => ({ ...opt, availCount: DAY_AVAILABILITY[idx] ?? 5 })),
+    [dateOptions]
+  );
 
   const complex = useMemo(
     () => (selectedComplexId ? getComplexById(selectedComplexId) : undefined),
@@ -172,8 +186,9 @@ export default function ScheduleScreen() {
         <FadeInView type="fadeInDown" duration={300} delay={150} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.datePillsRow}>
-              {dateOptions.map((opt) => {
+              {dateOptionsWithAvailability.map((opt, idx) => {
                 const isActive = selectedDate === opt.date;
+                const availDotColor = getAvailabilityColor(idx);
                 return (
                   <Pressable
                     key={opt.date}
@@ -192,14 +207,50 @@ export default function ScheduleScreen() {
                     <Text style={[styles.datePillNumber, { color: isActive ? '#0F172A' : isDark ? Colors.textDark : Colors.text }]}>
                       {opt.dayNumber}
                     </Text>
-                    {opt.isToday && !isActive && (
-                      <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.primary, marginTop: 2 }} />
-                    )}
+                    <View style={[styles.availDot, { backgroundColor: isActive ? '#0F172A' : availDotColor }]} />
                   </Pressable>
                 );
               })}
             </View>
           </ScrollView>
+        </FadeInView>
+
+        {/* Resumen de precios */}
+        <FadeInView type="fadeIn" duration={300} style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <GlassCard style={styles.priceSummaryCard}>
+            <View style={styles.priceSummaryHeader}>
+              <Ionicons name="pricetag" size={16} color={Colors.primary} />
+              <Text style={[styles.priceSummaryTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Resumen de precios</Text>
+            </View>
+            <View style={styles.priceBreakdown}>
+              <View style={styles.priceBreakdownRow}>
+                <Text style={[styles.priceBreakdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Precio por hora</Text>
+                <Text style={[styles.priceBreakdownValue, { color: isDark ? Colors.textDark : Colors.text }]}>
+                  {court ? formatPrice(court.pricePerHour) : 'S/—'}
+                </Text>
+              </View>
+              <View style={styles.priceBreakdownRow}>
+                <Text style={[styles.priceBreakdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Duración</Text>
+                <Text style={[styles.priceBreakdownValue, { color: isDark ? Colors.textDark : Colors.text }]}>1 hora</Text>
+              </View>
+              <View style={[styles.priceBreakdownDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
+              <View style={styles.priceBreakdownRow}>
+                <Text style={[styles.priceBreakdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Subtotal</Text>
+                <Text style={[styles.priceBreakdownValue, { color: isDark ? Colors.textDark : Colors.text }]}>
+                  {court ? formatPrice(court.pricePerHour) : 'S/—'}
+                </Text>
+              </View>
+              {selectedSlot && (
+                <>
+                  <View style={[styles.priceBreakdownDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
+                  <View style={styles.priceBreakdownRow}>
+                    <Text style={[styles.priceBreakdownLabelBold, { color: isDark ? Colors.textDark : Colors.text }]}>Total</Text>
+                    <Text style={styles.priceBreakdownTotal}>{formatPrice(selectedSlot.price)}</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </GlassCard>
         </FadeInView>
 
         {/* Low availability warning */}
@@ -228,23 +279,23 @@ export default function ScheduleScreen() {
                     styles.timeCard,
                     {
                       backgroundColor: !isAvailable
-                        ? isDark ? 'rgba(30,41,59,0.3)' : 'rgba(241,245,249,0.6)'
+                        ? isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.05)'
                         : isSelected
-                        ? Colors.primaryBg
-                        : isDark ? Colors.surfaceDark : Colors.surface,
+                        ? Colors.primary
+                        : 'rgba(132,204,22,0.08)',
                       borderColor: isSelected ? Colors.primary : isDark ? Colors.borderDark : Colors.border,
                       borderWidth: isSelected ? 2 : 1,
                     },
                   ]}
                 >
-                  <View style={[styles.statusDot, { backgroundColor: !isAvailable ? '#EF4444' : isSelected ? Colors.primary : '#22C55E' }]} />
-                  <Text style={[styles.timeCardTime, { color: !isAvailable ? isDark ? Colors.textTertiaryDark : Colors.textTertiary : isDark ? Colors.textDark : Colors.text }]}>
+                  <View style={[styles.statusDot, { backgroundColor: !isAvailable ? '#EF4444' : isSelected ? '#FFFFFF' : '#22C55E' }]} />
+                  <Text style={[styles.timeCardTime, { color: isSelected ? '#FFFFFF' : !isAvailable ? isDark ? Colors.textTertiaryDark : Colors.textTertiary : isDark ? Colors.textDark : Colors.text }]}>
                     {slot.time}
                   </Text>
                   {!isAvailable ? (
-                    <Text style={[styles.timeCardSub, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Ocupado</Text>
+                    <Text style={[styles.timeCardSub, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary, textDecorationLine: 'line-through' }]}>{formatPrice(slot.price)}</Text>
                   ) : (
-                    <Text style={[styles.timeCardSub, { color: Colors.primary }]}>{formatPrice(slot.price)}</Text>
+                    <Text style={[styles.timeCardSub, { color: isSelected ? 'rgba(255,255,255,0.85)' : Colors.primary }]}>{formatPrice(slot.price)}</Text>
                   )}
                 </Pressable>
               );
@@ -327,11 +378,25 @@ const styles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1, backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.3)',
   },
   warningText: { fontSize: 12, fontWeight: '500', color: '#F59E0B', marginLeft: 6 },
+
+  // Price summary
+  priceSummaryCard: {},
+  priceSummaryHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  priceSummaryTitle: { fontSize: 14, fontWeight: '700' },
+  priceBreakdown: { gap: 8 },
+  priceBreakdownRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  priceBreakdownLabel: { fontSize: 13, fontWeight: '500' },
+  priceBreakdownLabelBold: { fontSize: 14, fontWeight: '700' },
+  priceBreakdownValue: { fontSize: 13, fontWeight: '600' },
+  priceBreakdownDivider: { height: 1, marginVertical: 2 },
+  priceBreakdownTotal: { fontSize: 16, fontWeight: '800', color: Colors.primary },
+  availDot: { width: 5, height: 5, borderRadius: 2.5, marginTop: 3 },
   timeGridTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   timeCard: {
     width: (SCREEN_WIDTH - 48) / 2 - 5,
     borderRadius: 14, padding: 14, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginBottom: 6 },
   timeCardTime: { fontSize: 14, fontWeight: 'bold' },
