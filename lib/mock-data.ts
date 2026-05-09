@@ -1,6 +1,5 @@
-// ===========================
-// Types
-// ===========================
+// CanchaYa - Mock Data (Shared with RN app)
+// Re-exported from the Next.js project for consistency
 
 export interface Complex {
   id: string;
@@ -46,7 +45,7 @@ export interface Reservation {
   totalPrice: number;
 }
 
-export interface UserInfo {
+export interface User {
   id: string;
   name: string;
   email: string;
@@ -72,7 +71,7 @@ export interface Review {
   courtType?: string;
 }
 
-export interface AppNotification {
+export interface Notification {
   id: string;
   type: 'booking_confirmed' | 'booking_reminder' | 'booking_cancelled' | 'promotion' | 'review_request';
   title: string;
@@ -83,9 +82,17 @@ export interface AppNotification {
   reservationId?: string;
 }
 
-// ===========================
-// Mock Complexes
-// ===========================
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  requirement: string;
+  progress: number;
+  maxProgress: number;
+  unlocked: boolean;
+  unlockedDate?: string;
+}
 
 export const mockComplexes: Complex[] = [
   {
@@ -268,7 +275,7 @@ export const mockComplexes: Complex[] = [
   },
 ];
 
-export const mockUser: UserInfo = {
+export const mockUser: User = {
   id: "user-1",
   name: "Carlos Mendoza Ríos",
   email: "carlos.mendoza@email.com",
@@ -299,73 +306,62 @@ export const mockTimeSlots: TimeSlot[] = [
   { time: "20:00", available: true, price: 130 },
   { time: "21:00", available: true, price: 120 },
   { time: "22:00", available: true, price: 100 },
+  { time: "23:00", available: true, price: 80 },
 ];
 
-export const mockNotifications: AppNotification[] = [
-  { id: "notif-1", type: "booking_reminder", title: "Recordatorio de reserva", message: "Tu reserva en Complejo Deportivo El Campeón es mañana a las 19:00", timestamp: new Date(Date.now() - 3600000).toISOString(), read: false, complexId: "complex-1" },
+export const mockReviews: Review[] = [
+  { id: "rev-1", userId: "user-1", userName: "Carlos Mendoza", userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", complexId: "complex-1", rating: 5, comment: "Excelente cancha, grass en perfectas condiciones.", date: "2026-04-28", courtType: "futbol5" },
+  { id: "rev-2", userId: "user-2", userName: "María García", userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200", complexId: "complex-1", rating: 4, comment: "Muy buen complejo, pero el estacionamiento es pequeño.", date: "2026-04-25", courtType: "futbol7" },
+  { id: "rev-3", userId: "user-3", userName: "Diego Torres", userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200", complexId: "complex-1", rating: 5, comment: "La mejor cancha de Miraflores sin duda.", date: "2026-04-20", courtType: "futbol5" },
+  { id: "rev-4", userId: "user-4", userName: "Ana López", userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200", complexId: "complex-1", rating: 4, comment: "Buena experiencia, el café es un plus.", date: "2026-04-15", courtType: "futbol5" },
+  { id: "rev-5", userId: "user-2", userName: "María García", userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200", complexId: "complex-2", rating: 5, comment: "Las canchas techadas son increíbles!", date: "2026-04-22", courtType: "futbol5" },
+  { id: "rev-6", userId: "user-3", userName: "Diego Torres", userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200", complexId: "complex-2", rating: 4, comment: "Buena ubicación y canchas de pádel muy bien mantenidas.", date: "2026-04-18", courtType: "padel" },
+  { id: "rev-7", userId: "user-4", userName: "Ana López", userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200", complexId: "complex-3", rating: 4, comment: "Excelente relación precio-calidad.", date: "2026-04-16", courtType: "futbol7" },
+  { id: "rev-8", userId: "user-1", userName: "Carlos Mendoza", userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", complexId: "complex-3", rating: 3, comment: "Canchas buenas pero vestuarios necesitan mejora.", date: "2026-04-10", courtType: "futbol5" },
+  { id: "rev-9", userId: "user-2", userName: "María García", userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200", complexId: "complex-4", rating: 5, comment: "La cancha de fútbol 11 es espectacular.", date: "2026-04-12", courtType: "futbol11" },
+  { id: "rev-10", userId: "user-3", userName: "Diego Torres", userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200", complexId: "complex-4", rating: 4, comment: "Gran complejo para torneos.", date: "2026-04-08", courtType: "futbol7" },
+  { id: "rev-11", userId: "user-1", userName: "Carlos Mendoza", userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", complexId: "complex-5", rating: 5, comment: "Canchas techadas premium. Lo recomiendo.", date: "2026-04-05", courtType: "futbol5" },
+  { id: "rev-12", userId: "user-4", userName: "Ana López", userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200", complexId: "complex-5", rating: 4, comment: "Muy buen servicio, las canchas de pádel son profesionales.", date: "2026-04-02", courtType: "padel" },
+  { id: "rev-13", userId: "user-3", userName: "Diego Torres", userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200", complexId: "complex-6", rating: 4, comment: "Ambiente bohemio en Barranco, buen lugar.", date: "2026-03-28", courtType: "futbol5" },
+  { id: "rev-14", userId: "user-2", userName: "María García", userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200", complexId: "complex-7", rating: 4, comment: "Arena moderna y canchas techadas.", date: "2026-03-25", courtType: "futbol5" },
+  { id: "rev-15", userId: "user-1", userName: "Carlos Mendoza", userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", complexId: "complex-8", rating: 3, comment: "Precio accesible pero instalaciones básicas.", date: "2026-03-20", courtType: "futbol5" },
+  { id: "rev-16", userId: "user-4", userName: "Ana López", userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200", complexId: "complex-2", rating: 5, comment: "Mi complejo favorito!", date: "2026-04-01", courtType: "futbol5" },
+];
+
+export const mockNotifications: Notification[] = [
+  { id: "notif-1", type: "booking_reminder", title: "Recordatorio de reserva", message: "Tu reserva en El Campeón es mañana a las 19:00", timestamp: new Date(Date.now() - 3600000).toISOString(), read: false, complexId: "complex-1" },
   { id: "notif-2", type: "booking_confirmed", title: "Reserva confirmada", message: "Tu pago de S/142 ha sido procesado exitosamente", timestamp: new Date(Date.now() - 7200000).toISOString(), read: false, reservationId: "res-1" },
   { id: "notif-3", type: "promotion", title: "¡Oferta especial!", message: "20% de descuento en canchas techadas este fin de semana", timestamp: new Date(Date.now() - 86400000).toISOString(), read: false },
   { id: "notif-4", type: "review_request", title: "¿Cómo fue tu partido?", message: "Deja tu opinión sobre Sport Center Lima", timestamp: new Date(Date.now() - 172800000).toISOString(), read: true, complexId: "complex-3" },
   { id: "notif-5", type: "booking_reminder", title: "Reserva en 2 horas", message: "No olvides: San Borja FC a las 18:00", timestamp: new Date(Date.now() - 259200000).toISOString(), read: true, complexId: "complex-5" },
 ];
 
-export const mockReviews: Review[] = [
-  { id: "rev-1", userId: "user-1", userName: "Carlos Mendoza", userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", complexId: "complex-1", rating: 5, comment: "Excelente cancha, grass en perfectas condiciones. Los vestuarios muy limpios.", date: "2026-04-28", courtType: "futbol5" },
-  { id: "rev-2", userId: "user-2", userName: "María García", userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200", complexId: "complex-1", rating: 4, comment: "Muy buen complejo, pero el estacionamiento es pequeño.", date: "2026-04-25", courtType: "futbol7" },
-  { id: "rev-3", userId: "user-3", userName: "Diego Torres", userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200", complexId: "complex-1", rating: 5, comment: "La mejor cancha de Miraflores sin duda.", date: "2026-04-20", courtType: "futbol5" },
-  { id: "rev-4", userId: "user-4", userName: "Ana López", userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200", complexId: "complex-2", rating: 5, comment: "Las canchas techadas son increíbles!", date: "2026-04-22", courtType: "futbol5" },
-  { id: "rev-5", userId: "user-2", userName: "María García", userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200", complexId: "complex-5", rating: 5, comment: "Canchas techadas premium. Vestuarios de primer nivel.", date: "2026-04-05", courtType: "futbol5" },
-  { id: "rev-6", userId: "user-3", userName: "Diego Torres", userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200", complexId: "complex-4", rating: 5, comment: "La cancha de fútbol 11 es espectacular.", date: "2026-04-12", courtType: "futbol11" },
-  { id: "rev-7", userId: "user-1", userName: "Carlos Mendoza", userAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200", complexId: "complex-3", rating: 3, comment: "Buenas canchas pero vestuarios necesitan mejora.", date: "2026-04-10", courtType: "futbol5" },
-  { id: "rev-8", userId: "user-4", userName: "Ana López", userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200", complexId: "complex-7", rating: 4, comment: "Arena moderna y canchas techadas. Café gourmet delicioso.", date: "2026-03-25", courtType: "futbol5" },
+export const mockAchievements: Achievement[] = [
+  { id: 'ach-1', title: 'Primera Reserva', description: 'Haz tu primera reserva', icon: '🏆', requirement: 'Realizar 1 reserva', progress: 1, maxProgress: 1, unlocked: true, unlockedDate: '2026-03-15' },
+  { id: 'ach-2', title: 'Cinco Reservas', description: 'Completa 5 reservas', icon: '🎯', requirement: 'Completar 5 reservas', progress: 3, maxProgress: 5, unlocked: false },
+  { id: 'ach-3', title: 'Explorador', description: 'Visita 5 complejos diferentes', icon: '🧭', requirement: 'Ver 5 complejos', progress: 4, maxProgress: 5, unlocked: false },
+  { id: 'ach-4', title: 'Fan Favorito', description: 'Añade 3 complejos a favoritos', icon: '❤️', requirement: 'Favoritar 3 complejos', progress: 2, maxProgress: 3, unlocked: false },
+  { id: 'ach-5', title: 'Madrugador', description: 'Reserva un horario entre 6AM y 9AM', icon: '🌅', requirement: 'Reservar horario 6AM-9AM', progress: 1, maxProgress: 1, unlocked: true, unlockedDate: '2026-04-02' },
+  { id: 'ach-6', title: 'Reseñador', description: 'Escribe 3 reseñas', icon: '✍️', requirement: 'Escribir 3 reseñas', progress: 1, maxProgress: 3, unlocked: false },
 ];
 
-// ===========================
-// Helper functions
-// ===========================
-
+// Helpers
 export function getComplexById(id: string): Complex | undefined {
   return mockComplexes.find((c) => c.id === id);
 }
 
+export function getCourtById(complexId: string, courtId: string): Court | undefined {
+  return getComplexById(complexId)?.courts.find((c) => c.id === courtId);
+}
+
 export function getCourtTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    futbol5: "Fútbol 5",
-    futbol7: "Fútbol 7",
-    futbol11: "Fútbol 11",
-    padel: "Pádel",
-  };
+  const labels: Record<string, string> = { futbol5: "Fútbol 5", futbol7: "Fútbol 7", futbol11: "Fútbol 11", padel: "Pádel" };
   return labels[type] || type;
 }
 
 export function getReservationStatusLabel(status: Reservation["status"]): string {
-  const labels: Record<Reservation["status"], string> = {
-    pending: "Pendiente",
-    in_process: "En proceso",
-    confirmed: "Confirmada",
-    cancelled: "Cancelada",
-    completed: "Completada",
-  };
+  const labels: Record<Reservation["status"], string> = { pending: "Pendiente", in_process: "En proceso", confirmed: "Confirmada", cancelled: "Cancelada", completed: "Completada" };
   return labels[status];
-}
-
-export function formatPrice(price: number): string {
-  return `S/${price}`;
-}
-
-export function getTodayDateString(): string {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-}
-
-export function formatNotificationTime(timestamp: string): string {
-  const now = Date.now();
-  const time = new Date(timestamp).getTime();
-  const diff = now - time;
-  if (diff < 3600000) return `Hace ${Math.floor(diff / 60000)} min`;
-  if (diff < 86400000) return `Hace ${Math.floor(diff / 3600000)} h`;
-  if (diff < 172800000) return 'Ayer';
-  return `Hace ${Math.floor(diff / 86400000)} días`;
 }
 
 export function getReviewsByComplexId(complexId: string): Review[] {
@@ -375,24 +371,27 @@ export function getReviewsByComplexId(complexId: string): Review[] {
 export function getAverageRating(complexId: string): number {
   const reviews = getReviewsByComplexId(complexId);
   if (reviews.length === 0) return 0;
-  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
-  return Math.round((sum / reviews.length) * 10) / 10;
+  return Math.round((reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length) * 10) / 10;
 }
 
-export const districts = [
-  'Todos', 'Miraflores', 'San Isidro', 'Surco', 'La Molina', 'San Borja', 'Barranco', 'Pueblo Libre', 'Jesús María',
-];
+export function formatReviewDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
 
-export const sportTypes = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'futbol5', label: 'Fútbol 5' },
-  { id: 'futbol7', label: 'Fútbol 7' },
-  { id: 'futbol11', label: 'Fútbol 11' },
-  { id: 'padel', label: 'Pádel' },
-];
+export function formatNotificationTime(timestamp: string): string {
+  const diff = Date.now() - new Date(timestamp).getTime();
+  if (diff < 3600000) return `Hace ${Math.floor(diff / 60000)} min`;
+  if (diff < 86400000) return `Hace ${Math.floor(diff / 3600000)} h`;
+  if (diff < 172800000) return 'Ayer';
+  return `Hace ${Math.floor(diff / 86400000)} días`;
+}
 
-export const promotionalBanners = [
-  { id: 1, title: '¡20% OFF en tu primera reserva!', emoji: '⚽', buttonText: 'Reservar ahora', gradient: ['#84CC16', '#65A30D'] },
-  { id: 2, title: 'Canchas techadas disponibles', emoji: '🌧️', buttonText: 'Ver canchas', gradient: ['#3B82F6', '#1D4ED8'] },
-  { id: 3, title: 'Invita amigos y gana S/50', emoji: '🎁', buttonText: 'Compartir', gradient: ['#A855F7', '#7C3AED'] },
-];
+export function formatPrice(price: number): string {
+  return `S/${price}`;
+}
+
+export function getTodayDateString(): string {
+  return new Date().toISOString().split("T")[0];
+}

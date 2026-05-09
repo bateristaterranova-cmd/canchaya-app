@@ -1,303 +1,565 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   Dimensions,
+  StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-
-import { useAppStore } from '../lib/store';
-import { getComplexById, formatPrice, mockTimeSlots } from '../lib/mock-data';
-import { Colors } from '../constants/theme';
-import { GlassCard } from '../components/GlassCard';
+import { useAppStore } from '@/lib/store';
+import {
+  mockTimeSlots,
+  getComplexById,
+  getCourtById,
+  formatPrice,
+} from '@/lib/mock-data';
+import { Colors } from '@/lib/theme';
+import GlassCard from '@/components/ui/GlassCard';
+import NeonButton from '@/components/ui/NeonButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-function getNext7Days() {
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
+const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MONTH_NAMES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+interface DateOption {
+  date: string;
+  dayName: string;
+  dayNumber: number;
+  monthName: string;
+  isToday: boolean;
+}
+
+function getNext7Days(): DateOption[] {
+  const days: DateOption[] = [];
+  const today = new Date();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
     d.setDate(d.getDate() + i);
-    return {
-      dayName: dayNames[d.getDay()],
-      dayNum: d.getDate(),
-      month: monthNames[d.getMonth()],
-      fullDate: d.toISOString().split('T')[0],
+    days.push({
+      date: d.toISOString().split('T')[0],
+      dayName: DAY_NAMES[d.getDay()],
+      dayNumber: d.getDate(),
+      monthName: MONTH_NAMES[d.getMonth()],
       isToday: i === 0,
-    };
-  });
+    });
+  }
+  return days;
 }
 
 export default function ScheduleScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { isDarkMode, selectedComplexId, selectedCourtId, selectedDate, selectedTimeSlot, selectDate, selectTimeSlot } = useAppStore();
-  const isDark = isDarkMode;
+  const selectedComplexId = useAppStore((s) => s.selectedComplexId);
+  const selectedCourtId = useAppStore((s) => s.selectedCourtId);
+  const selectedDate = useAppStore((s) => s.selectedDate);
+  const selectedTimeSlot = useAppStore((s) => s.selectedTimeSlot);
+  const selectDate = useAppStore((s) => s.selectDate);
+  const selectTimeSlot = useAppStore((s) => s.selectTimeSlot);
+  const isDarkMode = useAppStore((s) => s.isDarkMode);
 
-  const complex = getComplexById(selectedComplexId || '');
-  const court = complex?.courts.find(c => c.id === selectedCourtId) || complex?.courts[0];
-  const dates = useMemo(() => getNext7Days(), []);
-  const [localDate, setLocalDate] = useState(selectedDate || dates[0].fullDate);
+  const dateOptions = useMemo(() => getNext7Days(), []);
+  const [activeMonth, setActiveMonth] = useState(dateOptions[0]?.monthName || '');
 
-  const selectedDateObj = dates.find(d => d.fullDate === localDate) || dates[0];
-  const availableCount = mockTimeSlots.filter(s => s.available).length;
+  const complex = useMemo(
+    () => (selectedComplexId ? getComplexById(selectedComplexId) : undefined),
+    [selectedComplexId]
+  );
+  const court = useMemo(
+    () =>
+      selectedComplexId && selectedCourtId
+        ? getCourtById(selectedComplexId, selectedCourtId)
+        : undefined,
+    [selectedComplexId, selectedCourtId]
+  );
 
-  if (!complex || !court) {
-    return (
-      <View style={[styles.emptyContainer, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
-        <Text style={[styles.emptyText, { color: isDark ? Colors.textDark : Colors.text }]}>No se encontró la cancha</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Volver</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // Low availability: count available slots
+  const availableCount = useMemo(
+    () => mockTimeSlots.filter((s) => s.available).length,
+    []
+  );
+  const lowAvailability = availableCount <= 3 && availableCount > 0;
 
-  const handleDateSelect = (fullDate: string) => {
-    setLocalDate(fullDate);
-    selectDate(fullDate);
+  // Selected slot price
+  const selectedSlot = useMemo(
+    () => mockTimeSlots.find((s) => s.time === selectedTimeSlot),
+    [selectedTimeSlot]
+  );
+
+  const handleDateSelect = (dateOption: DateOption) => {
+    selectDate(dateOption.date);
+    setActiveMonth(dateOption.monthName);
   };
 
   const handleTimeSelect = (time: string, available: boolean) => {
     if (!available) return;
-    selectTimeSlot(time);
+    selectTimeSlot(selectedTimeSlot === time ? null : time);
   };
 
   const handleContinue = () => {
-    if (!selectedTimeSlot) return;
-    router.push('/checkout');
+    if (selectedTimeSlot) {
+      router.push('/checkout');
+    }
   };
 
+  const theme = isDarkMode ? Colors.dark : Colors.light;
+  const cardBg = isDarkMode ? 'rgba(30,41,59,0.7)' : 'rgba(255,255,255,0.75)';
+  const borderClr = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)';
+
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: insets.top || 12, paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={22} color={isDark ? Colors.textDark : Colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Horario</Text>
-          <View style={{ width: 38 }} />
-        </View>
-
-        {/* Stepper */}
-        <View style={styles.stepperContainer}>
-          <View style={styles.stepRow}>
-            <View style={styles.stepCompleted}><Ionicons name="checkmark" size={14} color="#FFF" /></View>
-            <Text style={[styles.stepLabel, { color: Colors.primary }]}>Detalle</Text>
-          </View>
-          <View style={[styles.stepLine, { backgroundColor: Colors.primary }]} />
-          <View style={styles.stepRow}>
-            <View style={[styles.stepActive, { borderColor: Colors.primary }]}><Text style={styles.stepActiveNum}>2</Text></View>
-            <Text style={[styles.stepLabel, { color: Colors.primary }]}>Horario</Text>
-          </View>
-          <View style={[styles.stepLine, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-          <View style={styles.stepRow}>
-            <View style={[styles.stepPending, { borderColor: isDark ? Colors.borderDark : Colors.border }]}>
-              <Text style={[styles.stepPendingNum, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>3</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? Colors.dark.background : Colors.light.background }}>
+      <View className="flex-1">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+          {/* Header + Stepper */}
+          <View className="px-4 pt-4 pb-2">
+            {/* Back button + Title */}
+            <View className="flex-row items-center gap-3 mb-4">
+              <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={22} color={theme.text} />
+              </Pressable>
+              <Text className="text-xl font-bold flex-1" style={{ color: theme.text }}>
+                Horario
+              </Text>
             </View>
-            <Text style={[styles.stepLabel, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Pago</Text>
-          </View>
-        </View>
 
-        {/* Court info */}
-        <Animated.View entering={FadeInDown.duration(300)}>
-          <GlassCard style={styles.courtInfoCard} padding={12}>
-            <View style={styles.courtInfoRow}>
-              <Ionicons name="football" size={18} color={Colors.primary} />
-              <View style={styles.courtInfoText}>
-                <Text style={[styles.courtInfoName, { color: isDark ? Colors.textDark : Colors.text }]}>{court.name}</Text>
-                <Text style={[styles.courtInfoComplex, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{complex.name}</Text>
-              </View>
-            </View>
-          </GlassCard>
-        </Animated.View>
-
-        {/* Month */}
-        <Animated.View entering={FadeInDown.duration(300).delay(50)}>
-          <Text style={[styles.monthTitle, { color: isDark ? Colors.textDark : Colors.text }]}>{selectedDateObj.month}</Text>
-        </Animated.View>
-
-        {/* Date pills */}
-        <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
-            {dates.map((d) => {
-              const isSelected = localDate === d.fullDate;
-              return (
-                <TouchableOpacity
-                  key={d.fullDate}
-                  style={[styles.datePill, isSelected ? { backgroundColor: Colors.primary } : { backgroundColor: isDark ? Colors.surfaceDark : Colors.surface, borderColor: isDark ? Colors.borderDark : Colors.border }]}
-                  onPress={() => handleDateSelect(d.fullDate)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.dateDayName, isSelected && { color: '#111', fontWeight: '700' }]}>{d.dayName}</Text>
-                  <Text style={[styles.dateDayNum, isSelected && { color: '#111', fontWeight: '800' }]}>{d.dayNum}</Text>
-                  {d.isToday && <View style={[styles.todayDot, isSelected && { backgroundColor: '#111' }]} />}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
-
-        {/* Time legend */}
-        <Animated.View entering={FadeInDown.duration(300).delay(150)}>
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.success }]} />
-              <Text style={[styles.legendText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Disponible</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.error }]} />
-              <Text style={[styles.legendText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Ocupado</Text>
-            </View>
-            {availableCount <= 3 && availableCount > 0 && (
-              <View style={styles.lowAvailBadge}>
-                <Ionicons name="alert-circle-outline" size={12} color={Colors.warning} />
-                <Text style={styles.lowAvailText}>Poca disponibilidad</Text>
-              </View>
-            )}
-          </View>
-        </Animated.View>
-
-        {/* Time grid */}
-        <Animated.View entering={FadeInDown.duration(300).delay(200)}>
-          <View style={styles.timeGrid}>
-            {mockTimeSlots.map((slot) => {
-              const isSelected = selectedTimeSlot === slot.time;
-              return (
-                <TouchableOpacity
-                  key={slot.time}
-                  style={[styles.timeSlot, !slot.available && styles.timeSlotOccupied, isSelected && { backgroundColor: Colors.primary, borderColor: Colors.primary }]}
-                  onPress={() => handleTimeSelect(slot.time, slot.available)}
-                  disabled={!slot.available}
-                  activeOpacity={slot.available ? 0.7 : 1}
-                >
-                  <Text style={[styles.timeSlotText, !slot.available && styles.timeSlotTextOccupied, isSelected && { color: '#111', fontWeight: '800' }]}>{slot.time}</Text>
-                  {slot.available && <Text style={[styles.timeSlotPrice, isSelected && { color: '#111' }]}>{formatPrice(slot.price)}</Text>}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Animated.View>
-
-        {availableCount === 0 && (
-          <View style={styles.allTakenContainer}>
-            <Ionicons name="alert-circle-outline" size={36} color={Colors.warning} />
-            <Text style={[styles.allTakenTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Todos los horarios están ocupados</Text>
-            <Text style={[styles.allTakenSub, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Prueba seleccionando otra fecha</Text>
-          </View>
-        )}
-
-        {/* Summary */}
-        {selectedTimeSlot && (
-          <Animated.View entering={FadeInDown.duration(300)}>
-            <GlassCard style={styles.summaryCard} padding={12}>
-              <View style={styles.summaryRow}>
-                <Ionicons name="time" size={16} color={Colors.primary} />
-                <View style={styles.summaryInfo}>
-                  <Text style={[styles.summaryDate, { color: isDark ? Colors.textDark : Colors.text }]}>{localDate}</Text>
-                  <Text style={[styles.summaryTime, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
-                    {selectedTimeSlot} - {String(parseInt(selectedTimeSlot.split(':')[0]) + 1).padStart(2, '0')}:00
-                  </Text>
+            {/* Stepper: Detalle ✓ → Horario ● → Pago ○ */}
+            <View style={styles.stepper}>
+              {/* Step 1 - Detalle (completed) */}
+              <View style={styles.stepItem}>
+                <View style={[styles.stepCircle, { backgroundColor: Colors.neonGreen }]}>
+                  <Ionicons name="checkmark" size={16} color="#0F172A" />
                 </View>
-                <Text style={styles.summaryPrice}>
-                  {formatPrice(mockTimeSlots.find(s => s.time === selectedTimeSlot)?.price || court.pricePerHour)}
+                <Text className="text-xs font-medium mt-1" style={{ color: Colors.neonGreen }}>
+                  Detalle
                 </Text>
               </View>
-            </GlassCard>
+
+              {/* Line 1 */}
+              <View style={[styles.stepLine, { backgroundColor: Colors.neonGreen }]} />
+
+              {/* Step 2 - Horario (active) */}
+              <View style={styles.stepItem}>
+                <View
+                  style={[
+                    styles.stepCircle,
+                    {
+                      backgroundColor: 'transparent',
+                      borderWidth: 2,
+                      borderColor: Colors.neonGreen,
+                      shadowColor: Colors.neonGreen,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.5,
+                      shadowRadius: 8,
+                      elevation: 4,
+                    },
+                  ]}
+                >
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: Colors.neonGreen,
+                    }}
+                  />
+                </View>
+                <Text className="text-xs font-medium mt-1" style={{ color: Colors.neonGreen }}>
+                  Horario
+                </Text>
+              </View>
+
+              {/* Line 2 */}
+              <View style={[styles.stepLine, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]} />
+
+              {/* Step 3 - Pago (pending) */}
+              <View style={styles.stepItem}>
+                <View
+                  style={[
+                    styles.stepCircle,
+                    {
+                      backgroundColor: 'transparent',
+                      borderWidth: 2,
+                      borderColor: isDarkMode ? 'rgba(255,255,255,0.15)' : '#CBD5E1',
+                    },
+                  ]}
+                >
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.15)' : '#CBD5E1',
+                    }}
+                  />
+                </View>
+                <Text className="text-xs font-medium mt-1" style={{ color: theme.textMuted }}>
+                  Pago
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Court info summary */}
+          {complex && court && (
+            <Animated.View entering={FadeIn.duration(300)} className="px-4 mb-4">
+              <GlassCard isDark={isDarkMode}>
+                <View className="flex-row items-center gap-2">
+                  <Ionicons name="location" size={16} color={Colors.neonGreen} />
+                  <Text className="text-sm font-semibold" style={{ color: theme.text }} numberOfLines={1}>
+                    {complex.name}
+                  </Text>
+                  <Text className="text-xs" style={{ color: theme.textMuted }}>
+                    ·
+                  </Text>
+                  <Text className="text-sm" style={{ color: theme.textSecondary }} numberOfLines={1}>
+                    {court.name}
+                  </Text>
+                </View>
+              </GlassCard>
+            </Animated.View>
+          )}
+
+          {/* Month name */}
+          <Animated.View entering={FadeInDown.duration(300).delay(100)} className="px-4 mb-2">
+            <Text className="text-sm font-semibold" style={{ color: theme.textSecondary }}>
+              {activeMonth}
+            </Text>
           </Animated.View>
-        )}
 
-        <Text style={[styles.pricingNote, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Los precios pueden variar según el horario</Text>
-      </ScrollView>
+          {/* Date picker pills */}
+          <Animated.View entering={FadeInDown.duration(300).delay(150)} className="px-4 mb-4">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+                {dateOptions.map((opt) => {
+                  const isActive = selectedDate === opt.date;
+                  return (
+                    <Pressable
+                      key={opt.date}
+                      onPress={() => handleDateSelect(opt)}
+                      style={[
+                        styles.datePill,
+                        {
+                          backgroundColor: isActive
+                            ? Colors.neonGreen
+                            : isDarkMode
+                            ? 'rgba(30,41,59,0.7)'
+                            : 'rgba(255,255,255,0.75)',
+                          borderColor: isActive
+                            ? Colors.neonGreen
+                            : isDarkMode
+                            ? 'rgba(255,255,255,0.1)'
+                            : 'rgba(255,255,255,0.5)',
+                        },
+                      ]}
+                    >
+                      <Text
+                        className="text-xs font-medium"
+                        style={{ color: isActive ? '#0F172A' : theme.textMuted }}
+                      >
+                        {opt.dayName}
+                      </Text>
+                      <Text
+                        className="text-lg font-bold mt-0.5"
+                        style={{ color: isActive ? '#0F172A' : theme.text }}
+                      >
+                        {opt.dayNumber}
+                      </Text>
+                      {opt.isToday && !isActive && (
+                        <View
+                          style={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: 2,
+                            backgroundColor: Colors.neonGreen,
+                            marginTop: 2,
+                          }}
+                        />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </Animated.View>
 
-      {/* Sticky bottom */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12), backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-        <View style={styles.bottomBarInner}>
-          <View>
-            <Text style={[styles.bottomBarLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Total</Text>
-            <Text style={styles.bottomBarPrice}>
-              {formatPrice(selectedTimeSlot ? (mockTimeSlots.find(s => s.time === selectedTimeSlot)?.price || court.pricePerHour) : court.pricePerHour)}
+          {/* Low availability warning */}
+          {lowAvailability && (
+            <Animated.View entering={FadeIn.duration(300)} className="px-4 mb-3">
+              <View
+                style={[
+                  styles.warningBadge,
+                  { backgroundColor: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.3)' },
+                ]}
+              >
+                <Ionicons name="alert-circle" size={16} color="#F59E0B" />
+                <Text className="text-xs font-medium ml-1.5" style={{ color: '#F59E0B' }}>
+                  Poca disponibilidad — solo {availableCount} horarios disponibles
+                </Text>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* Time grid */}
+          <Animated.View entering={FadeInDown.duration(400).delay(200)} className="px-4">
+            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
+              Horarios disponibles
+            </Text>
+            <View style={styles.timeGrid}>
+              {mockTimeSlots.map((slot) => {
+                const isSelected = selectedTimeSlot === slot.time;
+                const isAvailable = slot.available;
+
+                return (
+                  <Pressable
+                    key={slot.time}
+                    onPress={() => handleTimeSelect(slot.time, isAvailable)}
+                    disabled={!isAvailable}
+                    style={[
+                      styles.timeCard,
+                      {
+                        backgroundColor: !isAvailable
+                          ? isDarkMode
+                            ? 'rgba(30,41,59,0.3)'
+                            : 'rgba(241,245,249,0.6)'
+                          : isSelected
+                          ? 'rgba(57,255,20,0.08)'
+                          : isDarkMode
+                          ? 'rgba(30,41,59,0.7)'
+                          : 'rgba(255,255,255,0.75)',
+                        borderColor: isSelected
+                          ? Colors.neonGreen
+                          : isDarkMode
+                          ? 'rgba(255,255,255,0.08)'
+                          : 'rgba(255,255,255,0.5)',
+                        borderWidth: isSelected ? 2 : 1,
+                        ...(isSelected
+                          ? {
+                              shadowColor: Colors.neonGreen,
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: 0.3,
+                              shadowRadius: 12,
+                              elevation: 4,
+                            }
+                          : {}),
+                      },
+                    ]}
+                  >
+                    {/* Status dot */}
+                    <View
+                      style={[
+                        styles.statusDot,
+                        {
+                          backgroundColor: !isAvailable
+                            ? '#EF4444'
+                            : isSelected
+                            ? Colors.neonGreen
+                            : '#22C55E',
+                        },
+                      ]}
+                    />
+                    <Text
+                      className="text-sm font-bold"
+                      style={{
+                        color: !isAvailable
+                          ? theme.textMuted
+                          : theme.text,
+                      }}
+                    >
+                      {slot.time}
+                    </Text>
+                    {!isAvailable ? (
+                      <Text className="text-xs mt-1" style={{ color: theme.textMuted }}>
+                        Ocupado
+                      </Text>
+                    ) : (
+                      <Text className="text-xs mt-1" style={{ color: Colors.neonGreen }}>
+                        {formatPrice(slot.price)}
+                      </Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Animated.View>
+
+          {/* Legend */}
+          <View className="px-4 mt-4 mb-3">
+            <View className="flex-row items-center gap-4">
+              <View className="flex-row items-center gap-1.5">
+                <View style={[styles.legendDot, { backgroundColor: '#22C55E' }]} />
+                <Text className="text-xs" style={{ color: theme.textMuted }}>
+                  Disponible
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-1.5">
+                <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+                <Text className="text-xs" style={{ color: theme.textMuted }}>
+                  Ocupado
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-1.5">
+                <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
+                <Text className="text-xs" style={{ color: theme.textMuted }}>
+                  Poca disponibilidad
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Pricing note */}
+          <View className="px-4 mb-3">
+            <Text className="text-xs" style={{ color: theme.textMuted }}>
+              Los precios pueden variar según el horario
             </Text>
           </View>
-          <TouchableOpacity style={[styles.continueButton, !selectedTimeSlot && { opacity: 0.5 }]} onPress={handleContinue} disabled={!selectedTimeSlot} activeOpacity={0.8}>
-            <Text style={styles.continueButtonText}>Continuar</Text>
-            <Ionicons name="arrow-forward" size={18} color="#111" />
-          </TouchableOpacity>
+
+          {/* Selected time summary */}
+          {selectedTimeSlot && selectedSlot && (
+            <Animated.View entering={FadeIn.duration(300)} className="px-4 mb-4">
+              <GlassCard isDark={isDarkMode}>
+                <View className="flex-row items-center gap-3">
+                  <View style={[styles.summaryIcon, { backgroundColor: 'rgba(57,255,20,0.12)' }]}>
+                    <Ionicons name="time" size={20} color={Colors.neonGreen} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs" style={{ color: theme.textMuted }}>
+                      {selectedDate}
+                    </Text>
+                    <Text className="text-sm font-bold" style={{ color: theme.text }}>
+                      {selectedTimeSlot} - {parseInt(selectedTimeSlot) + 1}:00
+                    </Text>
+                  </View>
+                  <Text className="text-base font-bold" style={{ color: Colors.neonGreen }}>
+                    {formatPrice(selectedSlot.price)}
+                  </Text>
+                </View>
+              </GlassCard>
+            </Animated.View>
+          )}
+        </ScrollView>
+
+        {/* Sticky bottom bar */}
+        <View
+          style={[
+            styles.stickyBottom,
+            {
+              backgroundColor: isDarkMode ? 'rgba(15,23,42,0.95)' : 'rgba(248,250,252,0.95)',
+              borderTopColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            },
+          ]}
+        >
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-xs" style={{ color: theme.textMuted }}>
+                Total
+              </Text>
+              <Text className="text-xl font-bold" style={{ color: theme.text }}>
+                {selectedSlot ? formatPrice(selectedSlot.price) : 'S/—'}
+              </Text>
+            </View>
+            <View className="flex-1 ml-4">
+              <NeonButton
+                title="Continuar al pago"
+                onPress={handleContinue}
+                disabled={!selectedTimeSlot}
+                size="lg"
+              />
+            </View>
+          </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyText: { fontSize: 16, fontWeight: '600' },
-  backBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: Colors.primary, borderRadius: 8, marginTop: 8 },
-  backBtnText: { color: '#111', fontWeight: '700' },
-  scrollView: { flex: 1 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
-  backButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(132,204,22,0.1)' },
-  headerTitle: { fontSize: 20, fontWeight: '800' },
-  stepperContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, marginBottom: 16 },
-  stepRow: { alignItems: 'center', gap: 4 },
-  stepCompleted: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  stepActive: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  stepActiveNum: { fontSize: 12, fontWeight: '700', color: Colors.primary },
-  stepPending: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  stepPendingNum: { fontSize: 12, fontWeight: '600' },
-  stepLabel: { fontSize: 11, fontWeight: '600' },
-  stepLine: { flex: 1, height: 2, marginHorizontal: 6 },
-  courtInfoCard: { marginHorizontal: 16, marginBottom: 12 },
-  courtInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  courtInfoText: { flex: 1 },
-  courtInfoName: { fontSize: 14, fontWeight: '700' },
-  courtInfoComplex: { fontSize: 12 },
-  monthTitle: { fontSize: 16, fontWeight: '700', paddingHorizontal: 16, marginBottom: 8 },
-  dateScroll: { paddingHorizontal: 16, marginBottom: 12 },
-  datePill: { width: 56, alignItems: 'center', paddingVertical: 10, borderRadius: 14, marginRight: 8, borderWidth: 1, borderColor: 'transparent', gap: 2 },
-  dateDayName: { fontSize: 11, fontWeight: '500', color: '#999' },
-  dateDayNum: { fontSize: 18, fontWeight: '700', color: '#666' },
-  todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: Colors.primary, marginTop: 2 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, marginBottom: 10 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 11 },
-  lowAvailBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(234,179,8,0.12)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  lowAvailText: { fontSize: 10, fontWeight: '600', color: Colors.warning },
-  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 8 },
-  timeSlot: { width: (SCREEN_WIDTH - 40) / 3, alignItems: 'center', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: Colors.success + '30', backgroundColor: Colors.success + '10', gap: 2 },
-  timeSlotOccupied: { borderColor: Colors.error + '30', backgroundColor: Colors.error + '08' },
-  timeSlotText: { fontSize: 14, fontWeight: '700', color: Colors.success },
-  timeSlotTextOccupied: { color: Colors.error + '60' },
-  timeSlotPrice: { fontSize: 10, fontWeight: '600', color: Colors.primary },
-  allTakenContainer: { alignItems: 'center', paddingVertical: 32, gap: 8 },
-  allTakenTitle: { fontSize: 16, fontWeight: '700' },
-  allTakenSub: { fontSize: 13 },
-  summaryCard: { marginHorizontal: 16, marginTop: 16 },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  summaryInfo: { flex: 1 },
-  summaryDate: { fontSize: 13, fontWeight: '600' },
-  summaryTime: { fontSize: 12 },
-  summaryPrice: { fontSize: 18, fontWeight: '800', color: Colors.primary },
-  pricingNote: { fontSize: 11, textAlign: 'center', marginTop: 8 },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)', paddingHorizontal: 16, paddingTop: 12 },
-  bottomBarInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  bottomBarLabel: { fontSize: 11 },
-  bottomBarPrice: { fontSize: 22, fontWeight: '800', color: Colors.primary },
-  continueButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
-  continueButtonText: { color: '#111', fontWeight: '700', fontSize: 15 },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  stepItem: {
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    marginHorizontal: 8,
+    borderRadius: 1,
+  },
+  datePill: {
+    width: 60,
+    paddingVertical: 10,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  timeCard: {
+    width: (SCREEN_WIDTH - 48) / 2 - 5,
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  warningBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  summaryIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stickyBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
 });

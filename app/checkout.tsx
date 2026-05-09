@@ -1,336 +1,655 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   TextInput,
-  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withSequence,
+  withRepeat,
+  withSpring,
+} from 'react-native-reanimated';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { useAppStore } from '@/lib/store';
+import {
+  getComplexById,
+  getCourtById,
+  formatPrice,
+  mockTimeSlots,
+} from '@/lib/mock-data';
+import { Colors } from '@/lib/theme';
+import GlassCard from '@/components/ui/GlassCard';
+import NeonButton from '@/components/ui/NeonButton';
 
-import { useAppStore } from '../lib/store';
-import { getComplexById, formatPrice, mockTimeSlots } from '../lib/mock-data';
-import { Colors } from '../constants/theme';
-import { GlassCard } from '../components/GlassCard';
+const COUNTDOWN_SECONDS = 600; // 10 minutes
 
-const COUNTDOWN_SECONDS = 300;
+type PaymentMethod = 'yape' | 'plin' | 'tarjeta' | 'transferencia';
 
-const paymentMethods = [
-  { id: 'yape', label: 'Yape', icon: 'phone-portrait-outline', color: '#7C3AED' },
-  { id: 'plin', label: 'Plin', icon: 'flash-outline', color: '#0D9488' },
-  { id: 'card', label: 'Tarjeta', icon: 'card-outline', color: '#3B82F6' },
-  { id: 'transfer', label: 'Transferencia', icon: 'swap-horizontal-outline', color: '#EA580C' },
+const PAYMENT_METHODS: {
+  id: PaymentMethod;
+  name: string;
+  icon: string;
+  accentColor: string;
+}[] = [
+  { id: 'yape', name: 'Yape', icon: 'phone-portrait', accentColor: '#7C3AED' },
+  { id: 'plin', name: 'Plin', icon: 'wallet', accentColor: '#14B8A6' },
+  { id: 'tarjeta', name: 'Tarjeta', icon: 'card', accentColor: '#3B82F6' },
+  { id: 'transferencia', name: 'Transferencia', icon: 'swap-horizontal', accentColor: '#F97316' },
 ];
 
+const PROMO_CODES: Record<string, number> = {
+  CANCHA10: 10,
+  CANCHA20: 20,
+  PRIMERA: 15,
+};
+
 export default function CheckoutScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { isDarkMode, selectedComplexId, selectedCourtId, selectedDate, selectedTimeSlot } = useAppStore();
-  const isDark = isDarkMode;
+  const selectedComplexId = useAppStore((s) => s.selectedComplexId);
+  const selectedCourtId = useAppStore((s) => s.selectedCourtId);
+  const selectedDate = useAppStore((s) => s.selectedDate);
+  const selectedTimeSlot = useAppStore((s) => s.selectedTimeSlot);
+  const isDarkMode = useAppStore((s) => s.isDarkMode);
+  const appliedPromoCode = useAppStore((s) => s.appliedPromoCode);
+  const promoDiscount = useAppStore((s) => s.promoDiscount);
+  const applyPromoCode = useAppStore((s) => s.applyPromoCode);
+  const removePromoCode = useAppStore((s) => s.removePromoCode);
 
-  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
-  const [promoCode, setPromoCode] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [promoInput, setPromoInput] = useState('');
+  const [promoError, setPromoError] = useState('');
+  const [confirming, setConfirming] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
 
-  const complex = getComplexById(selectedComplexId || '');
-  const court = complex?.courts.find(c => c.id === selectedCourtId) || complex?.courts[0];
-  const timeSlot = mockTimeSlots.find(s => s.time === selectedTimeSlot);
-  const price = timeSlot?.price || court?.pricePerHour || 0;
-  const serviceFee = Math.round(price * 0.05);
-  const totalPrice = price + serviceFee;
-
-  const endTime = selectedTimeSlot
-    ? `${String(parseInt(selectedTimeSlot.split(':')[0]) + 1).padStart(2, '0')}:00`
-    : '';
+  // Countdown
+  const [remaining, setRemaining] = useState(COUNTDOWN_SECONDS);
+  const [countdownActive, setCountdownActive] = useState(true);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => prev <= 0 ? 0 : prev - 1);
+    if (!countdownActive) return;
+    const interval = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev <= 1) {
+          setCountdownActive(false);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    return () => clearInterval(interval);
+  }, [countdownActive]);
 
-  const minutes = Math.floor(countdown / 60);
-  const seconds = countdown % 60;
-  const isLowTime = countdown < 120;
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const progressPercent = remaining / COUNTDOWN_SECONDS;
+  const isUrgent = remaining < 120;
 
-  const successScale = useSharedValue(0);
-  useEffect(() => {
-    if (showSuccess) successScale.value = withSpring(1, { damping: 12 });
-  }, [showSuccess]);
-  const successStyle = useAnimatedStyle(() => ({ transform: [{ scale: successScale.value }] }));
+  const complex = useMemo(
+    () => (selectedComplexId ? getComplexById(selectedComplexId) : undefined),
+    [selectedComplexId]
+  );
+  const court = useMemo(
+    () =>
+      selectedComplexId && selectedCourtId
+        ? getCourtById(selectedComplexId, selectedCourtId)
+        : undefined,
+    [selectedComplexId, selectedCourtId]
+  );
+
+  const selectedSlot = useMemo(
+    () => mockTimeSlots.find((s) => s.time === selectedTimeSlot),
+    [selectedTimeSlot]
+  );
+
+  const basePrice = selectedSlot?.price ?? 0;
+  const igv = Math.round(basePrice * 0.18 * 100) / 100;
+  const discountAmount = promoDiscount > 0 ? Math.round(basePrice * (promoDiscount / 100) * 100) / 100 : 0;
+  const total = basePrice + igv - discountAmount;
+
+  const handleApplyPromo = () => {
+    const code = promoInput.trim().toUpperCase();
+    if (PROMO_CODES[code]) {
+      applyPromoCode(code);
+      setPromoError('');
+    } else {
+      setPromoError('Código inválido');
+    }
+  };
+
+  const handleRemovePromo = () => {
+    removePromoCode();
+    setPromoInput('');
+    setPromoError('');
+  };
 
   const handleConfirm = () => {
-    if (!selectedPayment) {
-      Alert.alert('Método de pago', 'Selecciona un método de pago para continuar');
-      return;
-    }
-    setShowSuccess(true);
+    if (!paymentMethod) return;
+    setConfirming(true);
     setTimeout(() => {
-      setShowSuccess(false);
-      router.push('/(tabs)');
-    }, 2500);
+      setConfirming(false);
+      setShowSuccess(true);
+      setTimeout(() => {
+        router.replace('/(tabs)/home');
+      }, 2500);
+    }, 1500);
   };
 
-  const handleCancel = () => {
-    Alert.alert('Cancelar', '¿Deseas cancelar la reserva?', [
-      { text: 'No', style: 'cancel' },
-      { text: 'Sí', style: 'destructive', onPress: () => router.push('/(tabs)') },
-    ]);
-  };
+  const theme = isDarkMode ? Colors.dark : Colors.light;
+  const cardBg = isDarkMode ? 'rgba(30,41,59,0.7)' : 'rgba(255,255,255,0.75)';
+  const borderClr = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)';
 
-  if (!complex || !court) {
+  // Success animation values
+  const checkScale = useSharedValue(0);
+  const textOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (showSuccess) {
+      checkScale.value = withSpring(1, { damping: 8, stiffness: 100 });
+      textOpacity.value = withTiming(1, { duration: 600 });
+    }
+  }, [showSuccess]);
+
+  const checkAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: checkScale.value }],
+  }));
+
+  const textAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: textOpacity.value,
+  }));
+
+  if (showSuccess) {
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
-        <Text style={[styles.emptyText, { color: isDark ? Colors.textDark : Colors.text }]}>No se encontró la reserva</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Volver</Text>
-        </TouchableOpacity>
+      <View style={styles.successOverlay}>
+        <Animated.View style={[styles.successCheck, checkAnimatedStyle]}>
+          <Ionicons name="checkmark-circle" size={80} color={Colors.neonGreen} />
+        </Animated.View>
+        <Animated.View style={textAnimatedStyle}>
+          <Text className="text-2xl font-bold text-white mt-4">
+            ¡Reserva Confirmada!
+          </Text>
+          <Text className="text-base text-gray-300 mt-2 text-center">
+            Tu reserva ha sido procesada exitosamente
+          </Text>
+        </Animated.View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: insets.top || 12, paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? Colors.dark.background : Colors.light.background }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={22} color={isDark ? Colors.textDark : Colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Pago</Text>
-          <View style={{ width: 38 }} />
-        </View>
-
-        {/* Stepper */}
-        <View style={styles.stepperContainer}>
-          <View style={styles.stepRow}>
-            <View style={styles.stepCompleted}><Ionicons name="checkmark" size={14} color="#FFF" /></View>
-            <Text style={[styles.stepLabel, { color: Colors.primary }]}>Detalle</Text>
-          </View>
-          <View style={[styles.stepLine, { backgroundColor: Colors.primary }]} />
-          <View style={styles.stepRow}>
-            <View style={[styles.stepActive, { borderColor: Colors.primary }]}><Text style={styles.stepActiveNum}>2</Text></View>
-            <Text style={[styles.stepLabel, { color: Colors.primary }]}>Pago</Text>
-          </View>
-          <View style={[styles.stepLine, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-          <View style={styles.stepRow}>
-            <View style={[styles.stepPending, { borderColor: isDark ? Colors.borderDark : Colors.border }]}>
-              <Text style={[styles.stepPendingNum, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>3</Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          {/* Header + Stepper */}
+          <View className="px-4 pt-4 pb-2">
+            <View className="flex-row items-center gap-3 mb-4">
+              <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={22} color={theme.text} />
+              </Pressable>
+              <Text className="text-xl font-bold flex-1" style={{ color: theme.text }}>
+                Pago
+              </Text>
             </View>
-            <Text style={[styles.stepLabel, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Confirmación</Text>
-          </View>
-        </View>
 
-        {/* Countdown */}
-        <Animated.View entering={FadeInDown.duration(300)}>
-          <GlassCard style={styles.countdownCard} padding={12}>
-            <View style={styles.countdownRow}>
-              <Ionicons name="timer-outline" size={18} color={isLowTime ? Colors.error : Colors.primary} />
-              <Text style={[styles.countdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Tiempo para completar el pago</Text>
-            </View>
-            <Text style={[styles.countdownTime, { color: isLowTime ? Colors.error : Colors.primary }]}>
-              {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-            </Text>
-            <View style={styles.countdownBarBg}>
-              <View style={[styles.countdownBarFill, { width: `${(countdown / COUNTDOWN_SECONDS) * 100}%`, backgroundColor: isLowTime ? Colors.error : Colors.primary }]} />
-            </View>
-          </GlassCard>
-        </Animated.View>
-
-        {/* Summary */}
-        <Animated.View entering={FadeInDown.duration(300).delay(50)}>
-          <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Resumen de reserva</Text>
-          <GlassCard style={styles.summaryCard} padding={14}>
-            {[
-              { icon: 'location-outline', label: 'Complejo', value: complex.name },
-              { icon: 'football-outline', label: 'Cancha', value: court.name },
-              { icon: 'calendar-outline', label: 'Fecha', value: selectedDate },
-              { icon: 'time-outline', label: 'Hora', value: `${selectedTimeSlot} - ${endTime}` },
-            ].map((item, i, arr) => (
-              <React.Fragment key={item.label}>
-                <View style={styles.summaryItem}>
-                  <Ionicons name={item.icon as any} size={16} color={Colors.primary} />
-                  <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{item.label}</Text>
-                  <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]} numberOfLines={1}>{item.value}</Text>
+            {/* Stepper: Detalle ✓ → Pago ✓ → Confirmación ○ */}
+            <View style={styles.stepper}>
+              <View style={styles.stepItem}>
+                <View style={[styles.stepCircle, { backgroundColor: Colors.neonGreen }]}>
+                  <Ionicons name="checkmark" size={16} color="#0F172A" />
                 </View>
-                {i < arr.length - 1 && <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />}
-              </React.Fragment>
-            ))}
-            <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-            <View style={styles.summaryItem}>
-              <Ionicons name="timer-outline" size={16} color={Colors.primary} />
-              <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Duración</Text>
-              <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]}>1 hora</Text>
-            </View>
-            <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Precio cancha</Text>
-              <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]}>{formatPrice(price)}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={[styles.summaryLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Servicio (5%)</Text>
-              <Text style={[styles.summaryValue, { color: isDark ? Colors.textDark : Colors.text }]}>{formatPrice(serviceFee)}</Text>
-            </View>
-            <View style={[styles.summaryDivider, { backgroundColor: isDark ? Colors.borderDark : Colors.border }]} />
-            <View style={styles.summaryItem}>
-              <Text style={[styles.totalLabel, { color: isDark ? Colors.textDark : Colors.text }]}>Total</Text>
-              <Text style={styles.totalValue}>{formatPrice(totalPrice)}</Text>
-            </View>
-          </GlassCard>
-        </Animated.View>
-
-        {/* Payment */}
-        <Animated.View entering={FadeInDown.duration(300).delay(100)}>
-          <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Método de pago</Text>
-          <View style={styles.paymentGrid}>
-            {paymentMethods.map((method) => {
-              const isSelected = selectedPayment === method.id;
-              return (
-                <TouchableOpacity
-                  key={method.id}
-                  style={[styles.paymentCard, { borderColor: isSelected ? method.color : (isDark ? Colors.borderDark : Colors.border) }, isSelected && { backgroundColor: method.color + '15' }]}
-                  onPress={() => setSelectedPayment(method.id)}
-                  activeOpacity={0.7}
+                <Text className="text-xs font-medium mt-1" style={{ color: Colors.neonGreen }}>
+                  Detalle
+                </Text>
+              </View>
+              <View style={[styles.stepLine, { backgroundColor: Colors.neonGreen }]} />
+              <View style={styles.stepItem}>
+                <View style={[styles.stepCircle, { backgroundColor: Colors.neonGreen }]}>
+                  <Ionicons name="checkmark" size={16} color="#0F172A" />
+                </View>
+                <Text className="text-xs font-medium mt-1" style={{ color: Colors.neonGreen }}>
+                  Pago
+                </Text>
+              </View>
+              <View style={[styles.stepLine, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]} />
+              <View style={styles.stepItem}>
+                <View
+                  style={[
+                    styles.stepCircle,
+                    {
+                      backgroundColor: 'transparent',
+                      borderWidth: 2,
+                      borderColor: isDarkMode ? 'rgba(255,255,255,0.15)' : '#CBD5E1',
+                    },
+                  ]}
                 >
-                  <View style={[styles.paymentIcon, { backgroundColor: method.color + '20' }]}>
-                    <Ionicons name={method.icon as any} size={20} color={method.color} />
-                  </View>
-                  <Text style={[styles.paymentLabel, { color: isSelected ? method.color : (isDark ? Colors.textDark : Colors.text) }]}>{method.label}</Text>
-                  {isSelected && (
-                    <View style={[styles.paymentCheck, { backgroundColor: method.color }]}>
-                      <Ionicons name="checkmark" size={12} color="#FFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Animated.View>
-
-        {/* Promo */}
-        <Animated.View entering={FadeInDown.duration(300).delay(150)}>
-          <GlassCard style={styles.promoCard} padding={10}>
-            <View style={styles.promoRow}>
-              <Ionicons name="pricetag-outline" size={18} color={Colors.textTertiary} />
-              <TextInput
-                style={[styles.promoInput, { color: isDark ? Colors.textDark : Colors.text }]}
-                placeholder="Código promocional"
-                placeholderTextColor={isDark ? Colors.textTertiaryDark : Colors.textTertiary}
-                value={promoCode}
-                onChangeText={setPromoCode}
-              />
-              <TouchableOpacity style={styles.promoButton} activeOpacity={0.8}>
-                <Text style={styles.promoButtonText}>Aplicar</Text>
-              </TouchableOpacity>
+                  <View
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.15)' : '#CBD5E1',
+                    }}
+                  />
+                </View>
+                <Text className="text-xs font-medium mt-1" style={{ color: theme.textMuted }}>
+                  Confirmación
+                </Text>
+              </View>
             </View>
-          </GlassCard>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.duration(300).delay(200)}>
-          <View style={styles.securityRow}>
-            <Ionicons name="lock-closed-outline" size={14} color={Colors.success} />
-            <Text style={styles.securityText}>Pago seguro · Tus datos están protegidos</Text>
           </View>
-        </Animated.View>
-      </ScrollView>
 
-      {/* Bottom bar */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12), backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
-        <View style={styles.bottomBarInner}>
-          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel} activeOpacity={0.7}>
-            <Text style={styles.cancelBtnText}>Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.confirmButton, !selectedPayment && { opacity: 0.5 }]} onPress={handleConfirm} disabled={!selectedPayment} activeOpacity={0.8}>
-            <Ionicons name="checkmark-circle-outline" size={18} color="#111" />
-            <Text style={styles.confirmButtonText}>Confirmar Pago</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Success overlay */}
-      {showSuccess && (
-        <View style={styles.successOverlay}>
-          <Animated.View style={[styles.successContent, successStyle]}>
-            <View style={styles.successIcon}>
-              <Ionicons name="checkmark-circle" size={64} color={Colors.primary} />
-            </View>
-            <Text style={styles.successTitle}>¡Reserva Confirmada!</Text>
-            <Text style={styles.successSub}>{complex.name}</Text>
-            <Text style={styles.successTime}>{selectedDate} · {selectedTimeSlot} - {endTime}</Text>
+          {/* Countdown Timer */}
+          <Animated.View entering={FadeIn.duration(300)} className="px-4 mb-4">
+            <GlassCard isDark={isDarkMode}>
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                  Tiempo para completar:
+                </Text>
+                <Text
+                  className="text-sm font-bold"
+                  style={{
+                    color: isUrgent ? '#EF4444' : theme.text,
+                    fontVariant: ['tabular-nums'],
+                  }}
+                >
+                  {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                </Text>
+              </View>
+              <View
+                style={{
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
+                  overflow: 'hidden',
+                }}
+              >
+                <View
+                  style={{
+                    height: '100%',
+                    borderRadius: 2,
+                    width: `${progressPercent * 100}%`,
+                    backgroundColor: isUrgent ? '#EF4444' : Colors.neonGreen,
+                  }}
+                />
+              </View>
+            </GlassCard>
           </Animated.View>
+
+          {/* Order Summary */}
+          <Animated.View entering={FadeInDown.duration(300).delay(100)} className="px-4 mb-4">
+            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
+              Resumen de reserva
+            </Text>
+            <GlassCard isDark={isDarkMode}>
+              <View className="gap-3">
+                {complex && (
+                  <View className="flex-row items-center gap-3">
+                    <Ionicons name="location" size={18} color={Colors.neonGreen} />
+                    <Text className="text-sm flex-1" style={{ color: theme.textSecondary }} numberOfLines={1}>
+                      {complex.name}
+                    </Text>
+                  </View>
+                )}
+                {court && (
+                  <View className="flex-row items-center gap-3">
+                    <Ionicons name="american-football" size={18} color={Colors.neonGreen} />
+                    <Text className="text-sm flex-1" style={{ color: theme.textSecondary }} numberOfLines={1}>
+                      {court.name}
+                    </Text>
+                  </View>
+                )}
+                <View className="flex-row items-center gap-3">
+                  <Ionicons name="calendar" size={18} color={Colors.neonGreen} />
+                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                    {selectedDate}
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <Ionicons name="time" size={18} color={Colors.neonGreen} />
+                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                    {selectedTimeSlot} - {selectedTimeSlot ? parseInt(selectedTimeSlot) + 1 : '?'}:00
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <Ionicons name="hourglass" size={18} color={Colors.neonGreen} />
+                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                    1 hora
+                  </Text>
+                </View>
+              </View>
+            </GlassCard>
+          </Animated.View>
+
+          {/* Price Breakdown */}
+          <Animated.View entering={FadeInDown.duration(300).delay(200)} className="px-4 mb-4">
+            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
+              Desglose de precio
+            </Text>
+            <GlassCard isDark={isDarkMode}>
+              <View className="gap-2">
+                <View className="flex-row justify-between">
+                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                    Subtotal
+                  </Text>
+                  <Text className="text-sm font-medium" style={{ color: theme.text }}>
+                    {formatPrice(basePrice)}
+                  </Text>
+                </View>
+                <View className="flex-row justify-between">
+                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                    IGV (18%)
+                  </Text>
+                  <Text className="text-sm font-medium" style={{ color: theme.text }}>
+                    {formatPrice(igv)}
+                  </Text>
+                </View>
+                {promoDiscount > 0 && (
+                  <View className="flex-row justify-between">
+                    <Text className="text-sm" style={{ color: '#22C55E' }}>
+                      Descuento ({promoDiscount}%)
+                    </Text>
+                    <Text className="text-sm font-medium" style={{ color: '#22C55E' }}>
+                      -{formatPrice(discountAmount)}
+                    </Text>
+                  </View>
+                )}
+                <View style={{ height: 1, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0', marginVertical: 4 }} />
+                <View className="flex-row justify-between">
+                  <Text className="text-base font-bold" style={{ color: theme.text }}>
+                    Total
+                  </Text>
+                  <Text className="text-lg font-bold" style={{ color: Colors.neonGreen }}>
+                    {formatPrice(Math.round(total * 100) / 100)}
+                  </Text>
+                </View>
+              </View>
+            </GlassCard>
+          </Animated.View>
+
+          {/* Promo Code */}
+          <Animated.View entering={FadeInDown.duration(300).delay(250)} className="px-4 mb-4">
+            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
+              Código promocional
+            </Text>
+            {appliedPromoCode ? (
+              <GlassCard isDark={isDarkMode}>
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="pricetag" size={18} color={Colors.neonGreen} />
+                    <Text className="text-sm font-semibold" style={{ color: Colors.neonGreen }}>
+                      {appliedPromoCode}
+                    </Text>
+                    <Text className="text-xs" style={{ color: theme.textSecondary }}>
+                      -{promoDiscount}% descuento
+                    </Text>
+                  </View>
+                  <Pressable onPress={handleRemovePromo}>
+                    <Ionicons name="close-circle" size={20} color={theme.textMuted} />
+                  </Pressable>
+                </View>
+              </GlassCard>
+            ) : (
+              <View className="flex-row gap-2">
+                <TextInput
+                  value={promoInput}
+                  onChangeText={(t) => {
+                    setPromoInput(t);
+                    setPromoError('');
+                  }}
+                  placeholder="Ingresa tu código"
+                  placeholderTextColor={theme.textMuted}
+                  autoCapitalize="characters"
+                  style={[
+                    styles.promoInput,
+                    {
+                      backgroundColor: isDarkMode ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)',
+                      borderColor: promoError ? '#EF4444' : isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                      color: theme.text,
+                    },
+                  ]}
+                />
+                <Pressable
+                  onPress={handleApplyPromo}
+                  style={[styles.promoButton, { backgroundColor: Colors.neonGreen }]}
+                >
+                  <Text className="text-sm font-bold" style={{ color: '#0F172A' }}>
+                    Aplicar
+                  </Text>
+                </Pressable>
+              </View>
+            )}
+            {promoError ? (
+              <Text className="text-xs mt-1.5" style={{ color: '#EF4444' }}>
+                {promoError}
+              </Text>
+            ) : null}
+          </Animated.View>
+
+          {/* Payment Methods */}
+          <Animated.View entering={FadeInDown.duration(300).delay(300)} className="px-4 mb-4">
+            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
+              Método de pago
+            </Text>
+            <View className="gap-3">
+              {PAYMENT_METHODS.map((method) => {
+                const isSelected = paymentMethod === method.id;
+                return (
+                  <Pressable
+                    key={method.id}
+                    onPress={() => setPaymentMethod(method.id)}
+                    style={[
+                      styles.paymentCard,
+                      {
+                        backgroundColor: isSelected
+                          ? isDarkMode
+                            ? 'rgba(57,255,20,0.06)'
+                            : 'rgba(57,255,20,0.04)'
+                          : isDarkMode
+                          ? 'rgba(30,41,59,0.5)'
+                          : 'rgba(255,255,255,0.6)',
+                        borderColor: isSelected ? Colors.neonGreen : isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        ...(isSelected
+                          ? {
+                              shadowColor: Colors.neonGreen,
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: 0.25,
+                              shadowRadius: 10,
+                              elevation: 4,
+                            }
+                          : {}),
+                      },
+                    ]}
+                  >
+                    <View className="flex-row items-center gap-3">
+                      {/* Radio indicator */}
+                      <View
+                        style={[
+                          styles.radioOuter,
+                          {
+                            borderColor: isSelected ? Colors.neonGreen : isDarkMode ? 'rgba(255,255,255,0.2)' : '#CBD5E1',
+                          },
+                        ]}
+                      >
+                        {isSelected && (
+                          <View
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: 6,
+                              backgroundColor: Colors.neonGreen,
+                            }}
+                          />
+                        )}
+                      </View>
+
+                      {/* Icon */}
+                      <View
+                        style={[
+                          styles.paymentIcon,
+                          { backgroundColor: `${method.accentColor}18` },
+                        ]}
+                      >
+                        <Ionicons name={method.icon as any} size={22} color={method.accentColor} />
+                      </View>
+
+                      {/* Name */}
+                      <Text className="text-sm font-semibold" style={{ color: theme.text }}>
+                        {method.name}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Animated.View>
+
+          {/* Security Badge */}
+          <Animated.View entering={FadeInDown.duration(300).delay(350)} className="px-4 mb-4">
+            <View className="flex-row items-center justify-center gap-2 py-3">
+              <Ionicons name="lock-closed" size={16} color={theme.textMuted} />
+              <Text className="text-xs" style={{ color: theme.textMuted }}>
+                Pago seguro · Tus datos están protegidos
+              </Text>
+            </View>
+          </Animated.View>
+        </ScrollView>
+
+        {/* Bottom Buttons */}
+        <View
+          style={[
+            styles.stickyBottom,
+            {
+              backgroundColor: isDarkMode ? 'rgba(15,23,42,0.95)' : 'rgba(248,250,252,0.95)',
+              borderTopColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            },
+          ]}
+        >
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <NeonButton
+                title="Cancelar"
+                onPress={() => router.back()}
+                variant="outline"
+                size="lg"
+              />
+            </View>
+            <View style={{ flex: 2 }}>
+              <NeonButton
+                title="Confirmar Reserva"
+                onPress={handleConfirm}
+                disabled={!paymentMethod || confirming}
+                loading={confirming}
+                size="lg"
+              />
+            </View>
+          </View>
         </View>
-      )}
-    </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyText: { fontSize: 16, fontWeight: '600' },
-  backBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: Colors.primary, borderRadius: 8, marginTop: 8 },
-  backBtnText: { color: '#111', fontWeight: '700' },
-  scrollView: { flex: 1 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: 12 },
-  backButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(132,204,22,0.1)' },
-  headerTitle: { fontSize: 20, fontWeight: '800' },
-  stepperContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, marginBottom: 16 },
-  stepRow: { alignItems: 'center', gap: 4 },
-  stepCompleted: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  stepActive: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  stepActiveNum: { fontSize: 12, fontWeight: '700', color: Colors.primary },
-  stepPending: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  stepPendingNum: { fontSize: 12, fontWeight: '600' },
-  stepLabel: { fontSize: 11, fontWeight: '600' },
-  stepLine: { flex: 1, height: 2, marginHorizontal: 4 },
-  countdownCard: { marginHorizontal: 16, marginBottom: 12 },
-  countdownRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  countdownLabel: { fontSize: 12 },
-  countdownTime: { fontSize: 28, fontWeight: '800', textAlign: 'center', marginBottom: 6, fontVariant: ['tabular-nums'] },
-  countdownBarBg: { height: 4, borderRadius: 2, backgroundColor: 'rgba(132,204,22,0.15)' },
-  countdownBarFill: { height: '100%', borderRadius: 2 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 10, paddingHorizontal: 16 },
-  summaryCard: { marginHorizontal: 16, marginBottom: 16 },
-  summaryItem: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
-  summaryLabel: { fontSize: 13, flex: 1 },
-  summaryValue: { fontSize: 13, fontWeight: '600', flex: 1.5, textAlign: 'right' },
-  summaryDivider: { height: 1 },
-  totalLabel: { fontSize: 15, fontWeight: '800', flex: 1 },
-  totalValue: { fontSize: 20, fontWeight: '800', color: Colors.primary },
-  paymentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, marginBottom: 16 },
-  paymentCard: { width: '47%', borderWidth: 2, borderRadius: 14, padding: 14, alignItems: 'center', gap: 6, position: 'relative' },
-  paymentIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  paymentLabel: { fontSize: 13, fontWeight: '700' },
-  paymentCheck: { position: 'absolute', top: 8, right: 8, width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  promoCard: { marginHorizontal: 16, marginBottom: 12 },
-  promoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  promoInput: { flex: 1, height: 36, fontSize: 13 },
-  promoButton: { backgroundColor: Colors.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  promoButtonText: { color: '#111', fontWeight: '700', fontSize: 13 },
-  securityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 16 },
-  securityText: { fontSize: 12, color: Colors.success, fontWeight: '500' },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)', paddingHorizontal: 16, paddingTop: 12 },
-  bottomBarInner: { flexDirection: 'row', gap: 10 },
-  cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.error, alignItems: 'center', justifyContent: 'center' },
-  cancelBtnText: { color: Colors.error, fontWeight: '700', fontSize: 14 },
-  confirmButton: { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Colors.primary, paddingVertical: 14, borderRadius: 12 },
-  confirmButtonText: { color: '#111', fontWeight: '700', fontSize: 15 },
-  successOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-  successContent: { alignItems: 'center', gap: 8 },
-  successIcon: { marginBottom: 8 },
-  successTitle: { fontSize: 24, fontWeight: '800', color: '#FFF' },
-  successSub: { fontSize: 16, color: 'rgba(255,255,255,0.8)' },
-  successTime: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  stepItem: {
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    marginHorizontal: 8,
+    borderRadius: 1,
+  },
+  promoInput: {
+    flex: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    borderWidth: 1,
+  },
+  promoButton: {
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stickyBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
+  successOverlay: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successCheck: {
+    shadowColor: Colors.neonGreen,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 30,
+    elevation: 10,
+  },
 });

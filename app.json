@@ -2,7 +2,7 @@
   "expo": {
     "name": "CanchaYa",
     "slug": "canchaya",
-    "version": "1.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,37 +11,20 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#84CC16"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.canchaya.app",
-      "buildNumber": "2",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "CanchaYa necesita acceso a tu ubicación para mostrarte canchas deportivas cercanas.",
-        "ITSAppUsesNonExemptEncryption": false
-      },
-      "config": {
-        "googleMapsApiKey": "GOOGLE_MAPS_API_KEY_PLACEHOLDER"
-      }
+      "bundleIdentifier": "com.canchaya.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#84CC16"
+        "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.canchaya.app",
-      "versionCode": 2,
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "GOOGLE_MAPS_API_KEY_PLACEHOLDER"
-        }
-      }
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -49,25 +32,8 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "CanchaYa necesita acceso a tu ubicación para mostrarte canchas deportivas cercanas."
-        }
-      ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "6163b54f-1ef7-4d21-bde7-47e7c8070861"
-      },
-      "router": {}
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/6163b54f-1ef7-4d21-bde7-47e7c8070861"
-    },
-    "owner": "leohr09"
+      "expo-font",
+      "expo-image"
+    ]
   }
 }
