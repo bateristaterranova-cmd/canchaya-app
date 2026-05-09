@@ -8,32 +8,30 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-  withSequence,
-  withRepeat,
   withSpring,
 } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '@/lib/store';
+import { useAppStore } from '../lib/store';
 import {
   getComplexById,
   getCourtById,
   formatPrice,
   mockTimeSlots,
-} from '@/lib/mock-data';
-import { Colors } from '@/lib/theme';
-import GlassCard from '@/components/ui/GlassCard';
-import NeonButton from '@/components/ui/NeonButton';
+} from '../lib/mock-data';
+import { Colors, Shadows } from '../constants/theme';
+import { GlassCard } from '../components/GlassCard';
 
-const COUNTDOWN_SECONDS = 600; // 10 minutes
+const COUNTDOWN_SECONDS = 600;
 
 type PaymentMethod = 'yape' | 'plin' | 'tarjeta' | 'transferencia';
 
@@ -65,14 +63,14 @@ export default function CheckoutScreen() {
   const promoDiscount = useAppStore((s) => s.promoDiscount);
   const applyPromoCode = useAppStore((s) => s.applyPromoCode);
   const removePromoCode = useAppStore((s) => s.removePromoCode);
+  const isDark = isDarkMode;
+  const insets = useSafeAreaInsets();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // Countdown
   const [remaining, setRemaining] = useState(COUNTDOWN_SECONDS);
   const [countdownActive, setCountdownActive] = useState(true);
 
@@ -140,16 +138,11 @@ export default function CheckoutScreen() {
       setConfirming(false);
       setShowSuccess(true);
       setTimeout(() => {
-        router.replace('/(tabs)/home');
+        router.replace('/(tabs)');
       }, 2500);
     }, 1500);
   };
 
-  const theme = isDarkMode ? Colors.dark : Colors.light;
-  const cardBg = isDarkMode ? 'rgba(30,41,59,0.7)' : 'rgba(255,255,255,0.75)';
-  const borderClr = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)';
-
-  // Success animation values
   const checkScale = useSharedValue(0);
   const textOpacity = useSharedValue(0);
 
@@ -171,279 +164,169 @@ export default function CheckoutScreen() {
   if (showSuccess) {
     return (
       <View style={styles.successOverlay}>
-        <Animated.View style={[styles.successCheck, checkAnimatedStyle]}>
-          <Ionicons name="checkmark-circle" size={80} color={Colors.neonGreen} />
+        <Animated.View style={[styles.successCheck, checkAnimatedStyle, { shadowColor: Colors.primary, shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 0 }, elevation: 10 }]}>
+          <Ionicons name="checkmark-circle" size={80} color={Colors.primary} />
         </Animated.View>
         <Animated.View style={textAnimatedStyle}>
-          <Text className="text-2xl font-bold text-white mt-4">
-            ¡Reserva Confirmada!
-          </Text>
-          <Text className="text-base text-gray-300 mt-2 text-center">
-            Tu reserva ha sido procesada exitosamente
-          </Text>
+          <Text style={styles.successTitle}>¡Reserva Confirmada!</Text>
+          <Text style={styles.successSub}>Tu reserva ha sido procesada exitosamente</Text>
         </Animated.View>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? Colors.dark.background : Colors.light.background }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
+    <View style={[styles.container, { backgroundColor: isDark ? Colors.backgroundDark : Colors.background }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
           {/* Header + Stepper */}
-          <View className="px-4 pt-4 pb-2">
-            <View className="flex-row items-center gap-3 mb-4">
+          <View style={{ paddingHorizontal: 16, paddingTop: (insets.top || 12) + 4, paddingBottom: 8 }}>
+            <View style={styles.headerRow}>
               <Pressable onPress={() => router.back()} style={styles.backBtn}>
-                <Ionicons name="arrow-back" size={22} color={theme.text} />
+                <Ionicons name="arrow-back" size={22} color={isDark ? Colors.textDark : Colors.text} />
               </Pressable>
-              <Text className="text-xl font-bold flex-1" style={{ color: theme.text }}>
-                Pago
-              </Text>
+              <Text style={[styles.headerTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Pago</Text>
             </View>
-
-            {/* Stepper: Detalle ✓ → Pago ✓ → Confirmación ○ */}
             <View style={styles.stepper}>
               <View style={styles.stepItem}>
-                <View style={[styles.stepCircle, { backgroundColor: Colors.neonGreen }]}>
+                <View style={[styles.stepCircle, { backgroundColor: Colors.primary }]}>
                   <Ionicons name="checkmark" size={16} color="#0F172A" />
                 </View>
-                <Text className="text-xs font-medium mt-1" style={{ color: Colors.neonGreen }}>
-                  Detalle
-                </Text>
+                <Text style={[styles.stepText, { color: Colors.primary }]}>Detalle</Text>
               </View>
-              <View style={[styles.stepLine, { backgroundColor: Colors.neonGreen }]} />
+              <View style={[styles.stepLine, { backgroundColor: Colors.primary }]} />
               <View style={styles.stepItem}>
-                <View style={[styles.stepCircle, { backgroundColor: Colors.neonGreen }]}>
+                <View style={[styles.stepCircle, { backgroundColor: Colors.primary }]}>
                   <Ionicons name="checkmark" size={16} color="#0F172A" />
                 </View>
-                <Text className="text-xs font-medium mt-1" style={{ color: Colors.neonGreen }}>
-                  Pago
-                </Text>
+                <Text style={[styles.stepText, { color: Colors.primary }]}>Pago</Text>
               </View>
-              <View style={[styles.stepLine, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E2E8F0' }]} />
+              <View style={[styles.stepLine, { backgroundColor: isDark ? Colors.borderDark : '#E2E8F0' }]} />
               <View style={styles.stepItem}>
-                <View
-                  style={[
-                    styles.stepCircle,
-                    {
-                      backgroundColor: 'transparent',
-                      borderWidth: 2,
-                      borderColor: isDarkMode ? 'rgba(255,255,255,0.15)' : '#CBD5E1',
-                    },
-                  ]}
-                >
-                  <View
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.15)' : '#CBD5E1',
-                    }}
-                  />
+                <View style={[styles.stepCircle, { borderWidth: 2, borderColor: isDark ? Colors.borderDark : '#CBD5E1' }]}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: isDark ? Colors.borderDark : '#CBD5E1' }} />
                 </View>
-                <Text className="text-xs font-medium mt-1" style={{ color: theme.textMuted }}>
-                  Confirmación
-                </Text>
+                <Text style={[styles.stepText, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Confirmación</Text>
               </View>
             </View>
           </View>
 
           {/* Countdown Timer */}
-          <Animated.View entering={FadeIn.duration(300)} className="px-4 mb-4">
-            <GlassCard isDark={isDarkMode}>
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-sm" style={{ color: theme.textSecondary }}>
-                  Tiempo para completar:
-                </Text>
-                <Text
-                  className="text-sm font-bold"
-                  style={{
-                    color: isUrgent ? '#EF4444' : theme.text,
-                    fontVariant: ['tabular-nums'],
-                  }}
-                >
+          <Animated.View entering={FadeIn.duration(300)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <GlassCard style={styles.countdownCard}>
+              <View style={styles.countdownRow}>
+                <Text style={[styles.countdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Tiempo para completar:</Text>
+                <Text style={[styles.countdownTime, { color: isUrgent ? '#EF4444' : isDark ? Colors.textDark : Colors.text }]}>
                   {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                 </Text>
               </View>
-              <View
-                style={{
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0',
-                  overflow: 'hidden',
-                }}
-              >
-                <View
-                  style={{
-                    height: '100%',
-                    borderRadius: 2,
-                    width: `${progressPercent * 100}%`,
-                    backgroundColor: isUrgent ? '#EF4444' : Colors.neonGreen,
-                  }}
-                />
+              <View style={[styles.countdownProgressBg, { backgroundColor: isDark ? Colors.borderDark : '#E2E8F0' }]}>
+                <View style={[styles.countdownProgressFill, { width: `${progressPercent * 100}%`, backgroundColor: isUrgent ? '#EF4444' : Colors.primary }]} />
               </View>
             </GlassCard>
           </Animated.View>
 
           {/* Order Summary */}
-          <Animated.View entering={FadeInDown.duration(300).delay(100)} className="px-4 mb-4">
-            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
-              Resumen de reserva
-            </Text>
-            <GlassCard isDark={isDarkMode}>
-              <View className="gap-3">
+          <Animated.View entering={FadeInDown.duration(300).delay(100)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Resumen de reserva</Text>
+            <GlassCard style={styles.summaryCard}>
+              <View style={styles.summaryItems}>
                 {complex && (
-                  <View className="flex-row items-center gap-3">
-                    <Ionicons name="location" size={18} color={Colors.neonGreen} />
-                    <Text className="text-sm flex-1" style={{ color: theme.textSecondary }} numberOfLines={1}>
-                      {complex.name}
-                    </Text>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="location" size={18} color={Colors.primary} />
+                    <Text style={[styles.summaryItemText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]} numberOfLines={1}>{complex.name}</Text>
                   </View>
                 )}
                 {court && (
-                  <View className="flex-row items-center gap-3">
-                    <Ionicons name="american-football" size={18} color={Colors.neonGreen} />
-                    <Text className="text-sm flex-1" style={{ color: theme.textSecondary }} numberOfLines={1}>
-                      {court.name}
-                    </Text>
+                  <View style={styles.summaryItem}>
+                    <Ionicons name="american-football" size={18} color={Colors.primary} />
+                    <Text style={[styles.summaryItemText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]} numberOfLines={1}>{court.name}</Text>
                   </View>
                 )}
-                <View className="flex-row items-center gap-3">
-                  <Ionicons name="calendar" size={18} color={Colors.neonGreen} />
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
-                    {selectedDate}
-                  </Text>
+                <View style={styles.summaryItem}>
+                  <Ionicons name="calendar" size={18} color={Colors.primary} />
+                  <Text style={[styles.summaryItemText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{selectedDate}</Text>
                 </View>
-                <View className="flex-row items-center gap-3">
-                  <Ionicons name="time" size={18} color={Colors.neonGreen} />
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
+                <View style={styles.summaryItem}>
+                  <Ionicons name="time" size={18} color={Colors.primary} />
+                  <Text style={[styles.summaryItemText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>
                     {selectedTimeSlot} - {selectedTimeSlot ? parseInt(selectedTimeSlot) + 1 : '?'}:00
                   </Text>
                 </View>
-                <View className="flex-row items-center gap-3">
-                  <Ionicons name="hourglass" size={18} color={Colors.neonGreen} />
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
-                    1 hora
-                  </Text>
+                <View style={styles.summaryItem}>
+                  <Ionicons name="hourglass" size={18} color={Colors.primary} />
+                  <Text style={[styles.summaryItemText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>1 hora</Text>
                 </View>
               </View>
             </GlassCard>
           </Animated.View>
 
           {/* Price Breakdown */}
-          <Animated.View entering={FadeInDown.duration(300).delay(200)} className="px-4 mb-4">
-            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
-              Desglose de precio
-            </Text>
-            <GlassCard isDark={isDarkMode}>
-              <View className="gap-2">
-                <View className="flex-row justify-between">
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
-                    Subtotal
-                  </Text>
-                  <Text className="text-sm font-medium" style={{ color: theme.text }}>
-                    {formatPrice(basePrice)}
-                  </Text>
+          <Animated.View entering={FadeInDown.duration(300).delay(200)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Desglose de precio</Text>
+            <GlassCard style={styles.priceCard}>
+              <View style={styles.priceItems}>
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Subtotal</Text>
+                  <Text style={[styles.priceValue, { color: isDark ? Colors.textDark : Colors.text }]}>{formatPrice(basePrice)}</Text>
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>
-                    IGV (18%)
-                  </Text>
-                  <Text className="text-sm font-medium" style={{ color: theme.text }}>
-                    {formatPrice(igv)}
-                  </Text>
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>IGV (18%)</Text>
+                  <Text style={[styles.priceValue, { color: isDark ? Colors.textDark : Colors.text }]}>{formatPrice(igv)}</Text>
                 </View>
                 {promoDiscount > 0 && (
-                  <View className="flex-row justify-between">
-                    <Text className="text-sm" style={{ color: '#22C55E' }}>
-                      Descuento ({promoDiscount}%)
-                    </Text>
-                    <Text className="text-sm font-medium" style={{ color: '#22C55E' }}>
-                      -{formatPrice(discountAmount)}
-                    </Text>
+                  <View style={styles.priceRow}>
+                    <Text style={{ fontSize: 14, color: '#22C55E' }}>Descuento ({promoDiscount}%)</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#22C55E' }}>-{formatPrice(discountAmount)}</Text>
                   </View>
                 )}
-                <View style={{ height: 1, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0', marginVertical: 4 }} />
-                <View className="flex-row justify-between">
-                  <Text className="text-base font-bold" style={{ color: theme.text }}>
-                    Total
-                  </Text>
-                  <Text className="text-lg font-bold" style={{ color: Colors.neonGreen }}>
-                    {formatPrice(Math.round(total * 100) / 100)}
-                  </Text>
+                <View style={[styles.priceDivider, { backgroundColor: isDark ? Colors.borderDark : '#E2E8F0' }]} />
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceTotalLabel, { color: isDark ? Colors.textDark : Colors.text }]}>Total</Text>
+                  <Text style={[styles.priceTotalValue, { color: Colors.primary }]}>{formatPrice(Math.round(total * 100) / 100)}</Text>
                 </View>
               </View>
             </GlassCard>
           </Animated.View>
 
           {/* Promo Code */}
-          <Animated.View entering={FadeInDown.duration(300).delay(250)} className="px-4 mb-4">
-            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
-              Código promocional
-            </Text>
+          <Animated.View entering={FadeInDown.duration(300).delay(250)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Código promocional</Text>
             {appliedPromoCode ? (
-              <GlassCard isDark={isDarkMode}>
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2">
-                    <Ionicons name="pricetag" size={18} color={Colors.neonGreen} />
-                    <Text className="text-sm font-semibold" style={{ color: Colors.neonGreen }}>
-                      {appliedPromoCode}
-                    </Text>
-                    <Text className="text-xs" style={{ color: theme.textSecondary }}>
-                      -{promoDiscount}% descuento
-                    </Text>
+              <GlassCard style={styles.promoAppliedCard}>
+                <View style={styles.promoAppliedRow}>
+                  <View style={styles.promoAppliedLeft}>
+                    <Ionicons name="pricetag" size={18} color={Colors.primary} />
+                    <Text style={[styles.promoAppliedCode, { color: Colors.primary }]}>{appliedPromoCode}</Text>
+                    <Text style={[styles.promoAppliedDiscount, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>-{promoDiscount}%</Text>
                   </View>
                   <Pressable onPress={handleRemovePromo}>
-                    <Ionicons name="close-circle" size={20} color={theme.textMuted} />
+                    <Ionicons name="close-circle" size={20} color={isDark ? Colors.textTertiaryDark : Colors.textTertiary} />
                   </Pressable>
                 </View>
               </GlassCard>
             ) : (
-              <View className="flex-row gap-2">
+              <View style={styles.promoInputRow}>
                 <TextInput
                   value={promoInput}
-                  onChangeText={(t) => {
-                    setPromoInput(t);
-                    setPromoError('');
-                  }}
+                  onChangeText={(t) => { setPromoInput(t); setPromoError(''); }}
                   placeholder="Ingresa tu código"
-                  placeholderTextColor={theme.textMuted}
+                  placeholderTextColor={isDark ? Colors.textTertiaryDark : Colors.textTertiary}
                   autoCapitalize="characters"
-                  style={[
-                    styles.promoInput,
-                    {
-                      backgroundColor: isDarkMode ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)',
-                      borderColor: promoError ? '#EF4444' : isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                      color: theme.text,
-                    },
-                  ]}
+                  style={[styles.promoInput, { backgroundColor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)', borderColor: promoError ? '#EF4444' : isDark ? Colors.borderDark : 'rgba(0,0,0,0.05)', color: isDark ? Colors.textDark : Colors.text }]}
                 />
-                <Pressable
-                  onPress={handleApplyPromo}
-                  style={[styles.promoButton, { backgroundColor: Colors.neonGreen }]}
-                >
-                  <Text className="text-sm font-bold" style={{ color: '#0F172A' }}>
-                    Aplicar
-                  </Text>
+                <Pressable onPress={handleApplyPromo} style={[styles.promoButton, { backgroundColor: Colors.primary }]}>
+                  <Text style={styles.promoButtonText}>Aplicar</Text>
                 </Pressable>
               </View>
             )}
-            {promoError ? (
-              <Text className="text-xs mt-1.5" style={{ color: '#EF4444' }}>
-                {promoError}
-              </Text>
-            ) : null}
+            {promoError ? <Text style={styles.promoError}>{promoError}</Text> : null}
           </Animated.View>
 
           {/* Payment Methods */}
-          <Animated.View entering={FadeInDown.duration(300).delay(300)} className="px-4 mb-4">
-            <Text className="text-base font-bold mb-3" style={{ color: theme.text }}>
-              Método de pago
-            </Text>
-            <View className="gap-3">
+          <Animated.View entering={FadeInDown.duration(300).delay(300)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Método de pago</Text>
+            <View style={styles.paymentMethods}>
               {PAYMENT_METHODS.map((method) => {
                 const isSelected = paymentMethod === method.id;
                 return (
@@ -454,61 +337,20 @@ export default function CheckoutScreen() {
                       styles.paymentCard,
                       {
                         backgroundColor: isSelected
-                          ? isDarkMode
-                            ? 'rgba(57,255,20,0.06)'
-                            : 'rgba(57,255,20,0.04)'
-                          : isDarkMode
-                          ? 'rgba(30,41,59,0.5)'
-                          : 'rgba(255,255,255,0.6)',
-                        borderColor: isSelected ? Colors.neonGreen : isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                        ...(isSelected
-                          ? {
-                              shadowColor: Colors.neonGreen,
-                              shadowOffset: { width: 0, height: 0 },
-                              shadowOpacity: 0.25,
-                              shadowRadius: 10,
-                              elevation: 4,
-                            }
-                          : {}),
+                          ? Colors.primaryBg
+                          : isDark ? 'rgba(30,41,59,0.5)' : 'rgba(255,255,255,0.6)',
+                        borderColor: isSelected ? Colors.primary : isDark ? Colors.borderDark : 'rgba(0,0,0,0.06)',
                       },
                     ]}
                   >
-                    <View className="flex-row items-center gap-3">
-                      {/* Radio indicator */}
-                      <View
-                        style={[
-                          styles.radioOuter,
-                          {
-                            borderColor: isSelected ? Colors.neonGreen : isDarkMode ? 'rgba(255,255,255,0.2)' : '#CBD5E1',
-                          },
-                        ]}
-                      >
-                        {isSelected && (
-                          <View
-                            style={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: 6,
-                              backgroundColor: Colors.neonGreen,
-                            }}
-                          />
-                        )}
+                    <View style={styles.paymentCardLeft}>
+                      <View style={[styles.radioOuter, { borderColor: isSelected ? Colors.primary : isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1' }]}>
+                        {isSelected && <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.primary }} />}
                       </View>
-
-                      {/* Icon */}
-                      <View
-                        style={[
-                          styles.paymentIcon,
-                          { backgroundColor: `${method.accentColor}18` },
-                        ]}
-                      >
+                      <View style={[styles.paymentIcon, { backgroundColor: `${method.accentColor}18` }]}>
                         <Ionicons name={method.icon as any} size={22} color={method.accentColor} />
                       </View>
-
-                      {/* Name */}
-                      <Text className="text-sm font-semibold" style={{ color: theme.text }}>
-                        {method.name}
-                      </Text>
+                      <Text style={[styles.paymentName, { color: isDark ? Colors.textDark : Colors.text }]}>{method.name}</Text>
                     </View>
                   </Pressable>
                 );
@@ -517,139 +359,100 @@ export default function CheckoutScreen() {
           </Animated.View>
 
           {/* Security Badge */}
-          <Animated.View entering={FadeInDown.duration(300).delay(350)} className="px-4 mb-4">
-            <View className="flex-row items-center justify-center gap-2 py-3">
-              <Ionicons name="lock-closed" size={16} color={theme.textMuted} />
-              <Text className="text-xs" style={{ color: theme.textMuted }}>
-                Pago seguro · Tus datos están protegidos
-              </Text>
+          <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+            <View style={styles.securityRow}>
+              <Ionicons name="lock-closed" size={16} color={isDark ? Colors.textTertiaryDark : Colors.textTertiary} />
+              <Text style={[styles.securityText, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>Pago seguro · Tus datos están protegidos</Text>
             </View>
-          </Animated.View>
+          </View>
         </ScrollView>
 
         {/* Bottom Buttons */}
-        <View
-          style={[
-            styles.stickyBottom,
-            {
-              backgroundColor: isDarkMode ? 'rgba(15,23,42,0.95)' : 'rgba(248,250,252,0.95)',
-              borderTopColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-            },
-          ]}
-        >
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <NeonButton
-                title="Cancelar"
-                onPress={() => router.back()}
-                variant="outline"
-                size="lg"
-              />
-            </View>
-            <View style={{ flex: 2 }}>
-              <NeonButton
-                title="Confirmar Reserva"
-                onPress={handleConfirm}
-                disabled={!paymentMethod || confirming}
-                loading={confirming}
-                size="lg"
-              />
-            </View>
+        <View style={[styles.stickyBottom, { backgroundColor: isDark ? 'rgba(10,10,10,0.95)' : 'rgba(248,250,252,0.95)', borderTopColor: isDark ? Colors.borderDark : 'rgba(0,0,0,0.05)' }]}>
+          <View style={styles.bottomButtons}>
+            <TouchableOpacity
+              style={[styles.cancelButton, { borderColor: isDark ? Colors.borderDark : Colors.border }]}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.cancelButtonText, { color: isDark ? Colors.textDark : Colors.text }]}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.confirmButton, { backgroundColor: paymentMethod && !confirming ? Colors.primary : isDark ? Colors.surfaceDark : '#E2E8F0' }]}
+              onPress={handleConfirm}
+              disabled={!paymentMethod || confirming}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.confirmButtonText, { color: paymentMethod && !confirming ? '#111' : isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>
+                {confirming ? 'Procesando...' : 'Confirmar Reserva'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  stepItem: {
-    alignItems: 'center',
-  },
-  stepCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepLine: {
-    flex: 1,
-    height: 2,
-    marginHorizontal: 8,
-    borderRadius: 1,
-  },
-  promoInput: {
-    flex: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
-    borderWidth: 1,
-  },
-  promoButton: {
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  paymentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  radioOuter: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  paymentIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stickyBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-  },
-  successOverlay: {
-    flex: 1,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successCheck: {
-    shadowColor: Colors.neonGreen,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 30,
-    elevation: 10,
-  },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', flex: 1 },
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8 },
+  stepItem: { alignItems: 'center' },
+  stepCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  stepText: { fontSize: 12, fontWeight: '500', marginTop: 4 },
+  stepLine: { flex: 1, height: 2, marginHorizontal: 8, borderRadius: 1 },
+  countdownCard: {},
+  countdownRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  countdownLabel: { fontSize: 14 },
+  countdownTime: { fontSize: 14, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+  countdownProgressBg: { height: 4, borderRadius: 2, overflow: 'hidden' },
+  countdownProgressFill: { height: '100%', borderRadius: 2 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 12 },
+  summaryCard: {},
+  summaryItems: { gap: 12 },
+  summaryItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  summaryItemText: { fontSize: 14, flex: 1 },
+  priceCard: {},
+  priceItems: { gap: 8 },
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  priceLabel: { fontSize: 14 },
+  priceValue: { fontSize: 14, fontWeight: '600' },
+  priceDivider: { height: 1, marginVertical: 4 },
+  priceTotalLabel: { fontSize: 16, fontWeight: 'bold' },
+  priceTotalValue: { fontSize: 18, fontWeight: '800' },
+  promoAppliedCard: {},
+  promoAppliedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  promoAppliedLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  promoAppliedCode: { fontSize: 14, fontWeight: '700' },
+  promoAppliedDiscount: { fontSize: 12 },
+  promoInputRow: { flexDirection: 'row', gap: 8 },
+  promoInput: { flex: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, borderWidth: 1 },
+  promoButton: { paddingHorizontal: 20, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  promoButtonText: { color: '#0F172A', fontWeight: '700', fontSize: 14 },
+  promoError: { fontSize: 12, color: '#EF4444', marginTop: 6 },
+  paymentMethods: { gap: 12 },
+  paymentCard: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderRadius: 14, borderWidth: 1.5 },
+  paymentCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  radioOuter: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  paymentIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  paymentName: { fontSize: 14, fontWeight: '600' },
+  securityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12 },
+  securityText: { fontSize: 12 },
+  stickyBottom: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingVertical: 16, borderTopWidth: 1 },
+  bottomButtons: { flexDirection: 'row', gap: 12 },
+  cancelButton: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, backgroundColor: 'transparent' },
+  cancelButtonText: { fontSize: 15, fontWeight: '600' },
+  confirmButton: { flex: 2, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  confirmButtonText: { fontSize: 15, fontWeight: '700' },
+  successOverlay: { flex: 1, backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' },
+  successCheck: { marginBottom: 16 },
+  successTitle: { fontSize: 24, fontWeight: '800', color: '#FFF', marginTop: 16, textAlign: 'center' },
+  successSub: { fontSize: 16, color: '#94A3B8', marginTop: 8, textAlign: 'center' },
 });
