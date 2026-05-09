@@ -1,5 +1,3 @@
-import 'react-native-reanimated';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated as RNAnimated, Dimensions } from 'react-native';
 import { Stack } from 'expo-router';

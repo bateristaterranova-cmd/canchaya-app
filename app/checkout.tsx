@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Animated as RNAnimated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  withSpring,
-} from 'react-native-reanimated';
+import { FadeInView } from '../components/FadeInView';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../lib/store';
@@ -143,34 +137,26 @@ export default function CheckoutScreen() {
     }, 1500);
   };
 
-  const checkScale = useSharedValue(0);
-  const textOpacity = useSharedValue(0);
+  const checkScale = useRef(new RNAnimated.Value(0)).current;
+  const textOpacity = useRef(new RNAnimated.Value(0)).current;
 
   useEffect(() => {
     if (showSuccess) {
-      checkScale.value = withSpring(1, { damping: 8, stiffness: 100 });
-      textOpacity.value = withTiming(1, { duration: 600 });
+      RNAnimated.spring(checkScale, { toValue: 1, damping: 8, stiffness: 100, useNativeDriver: true }).start();
+      RNAnimated.timing(textOpacity, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     }
   }, [showSuccess]);
-
-  const checkAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: checkScale.value }],
-  }));
-
-  const textAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: textOpacity.value,
-  }));
 
   if (showSuccess) {
     return (
       <View style={styles.successOverlay}>
-        <Animated.View style={[styles.successCheck, checkAnimatedStyle, { shadowColor: Colors.primary, shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 0 }, elevation: 10 }]}>
+        <RNAnimated.View style={[styles.successCheck, { transform: [{ scale: checkScale }] }, { shadowColor: Colors.primary, shadowOpacity: 0.6, shadowRadius: 30, shadowOffset: { width: 0, height: 0 }, elevation: 10 }]}>
           <Ionicons name="checkmark-circle" size={80} color={Colors.primary} />
-        </Animated.View>
-        <Animated.View style={textAnimatedStyle}>
+        </RNAnimated.View>
+        <RNAnimated.View style={{ opacity: textOpacity }}>
           <Text style={styles.successTitle}>¡Reserva Confirmada!</Text>
           <Text style={styles.successSub}>Tu reserva ha sido procesada exitosamente</Text>
-        </Animated.View>
+        </RNAnimated.View>
       </View>
     );
   }
@@ -212,7 +198,7 @@ export default function CheckoutScreen() {
           </View>
 
           {/* Countdown Timer */}
-          <Animated.View entering={FadeIn.duration(300)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <FadeInView type="fadeIn" duration={300} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <GlassCard style={styles.countdownCard}>
               <View style={styles.countdownRow}>
                 <Text style={[styles.countdownLabel, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>Tiempo para completar:</Text>
@@ -224,10 +210,10 @@ export default function CheckoutScreen() {
                 <View style={[styles.countdownProgressFill, { width: `${progressPercent * 100}%`, backgroundColor: isUrgent ? '#EF4444' : Colors.primary }]} />
               </View>
             </GlassCard>
-          </Animated.View>
+          </FadeInView>
 
           {/* Order Summary */}
-          <Animated.View entering={FadeInDown.duration(300).delay(100)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <FadeInView type="fadeInDown" duration={300} delay={100} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Resumen de reserva</Text>
             <GlassCard style={styles.summaryCard}>
               <View style={styles.summaryItems}>
@@ -259,10 +245,10 @@ export default function CheckoutScreen() {
                 </View>
               </View>
             </GlassCard>
-          </Animated.View>
+          </FadeInView>
 
           {/* Price Breakdown */}
-          <Animated.View entering={FadeInDown.duration(300).delay(200)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <FadeInView type="fadeInDown" duration={300} delay={200} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Desglose de precio</Text>
             <GlassCard style={styles.priceCard}>
               <View style={styles.priceItems}>
@@ -287,10 +273,10 @@ export default function CheckoutScreen() {
                 </View>
               </View>
             </GlassCard>
-          </Animated.View>
+          </FadeInView>
 
           {/* Promo Code */}
-          <Animated.View entering={FadeInDown.duration(300).delay(250)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <FadeInView type="fadeInDown" duration={300} delay={250} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Código promocional</Text>
             {appliedPromoCode ? (
               <GlassCard style={styles.promoAppliedCard}>
@@ -321,10 +307,10 @@ export default function CheckoutScreen() {
               </View>
             )}
             {promoError ? <Text style={styles.promoError}>{promoError}</Text> : null}
-          </Animated.View>
+          </FadeInView>
 
           {/* Payment Methods */}
-          <Animated.View entering={FadeInDown.duration(300).delay(300)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <FadeInView type="fadeInDown" duration={300} delay={300} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Método de pago</Text>
             <View style={styles.paymentMethods}>
               {PAYMENT_METHODS.map((method) => {
@@ -356,7 +342,7 @@ export default function CheckoutScreen() {
                 );
               })}
             </View>
-          </Animated.View>
+          </FadeInView>
 
           {/* Security Badge */}
           <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>

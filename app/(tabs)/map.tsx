@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,17 +6,9 @@ import {
   Pressable,
   StyleSheet,
   Alert,
+  Animated as RNAnimated,
 } from 'react-native';
-import Animated, {
-  FadeIn,
-  SlideInUp,
-  SlideOutDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  withSequence,
-} from 'react-native-reanimated';
+import { FadeInView } from '../../components/FadeInView';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -87,19 +79,21 @@ function MapPin({
   isSelected: boolean;
   onPress: () => void;
 }) {
-  const pulseScale = useSharedValue(1);
+  const pulseScale = useRef(new RNAnimated.Value(1)).current;
   useEffect(() => {
-    pulseScale.value = withRepeat(
-      withSequence(withTiming(1.4, { duration: 1500 }), withTiming(1, { duration: 1500 })),
-      -1,
-      false
-    );
+    RNAnimated.loop(
+      RNAnimated.sequence([
+        RNAnimated.timing(pulseScale, { toValue: 1.4, duration: 1500, useNativeDriver: true }),
+        RNAnimated.timing(pulseScale, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
+    return () => pulseScale.stopAnimation();
   }, []);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-    opacity: 1 - (pulseScale.value - 1) * 1.5,
-  }));
+  const pulseStyle = {
+    transform: [{ scale: pulseScale }],
+    opacity: pulseScale.interpolate({ inputRange: [1, 1.4], outputRange: [1, 0.1] }),
+  };
 
   const complex = mockComplexes.find((c) => c.id === complexId);
   if (!complex) return null;
@@ -116,13 +110,13 @@ function MapPin({
       style={[styles.pinContainer, { left: `${x * 100}%`, top: `${y * 100}%` }]}
     >
       {isSelected && (
-        <Animated.View entering={FadeIn.duration(200)} style={styles.pinLabel}>
+        <FadeInView type="fadeIn" duration={200} style={styles.pinLabel}>
           <Text style={styles.pinLabelText} numberOfLines={1}>
             {complex.name.replace('Complejo Deportivo ', '').replace('Deportivo ', '')}
           </Text>
-        </Animated.View>
+        </FadeInView>
       )}
-      <Animated.View style={[styles.pinPulse, pulseStyle]} />
+      <RNAnimated.View style={[styles.pinPulse, pulseStyle]} />
       <Svg width={SVG_SIZE} height={SVG_SIZE * 1.3} viewBox="0 0 44 57" style={styles.pinSvg}>
         <Ellipse cx={22} cy={54} rx={10} ry={3} fill="rgba(0,0,0,0.15)" />
         <Path
@@ -323,11 +317,7 @@ export default function MapScreen() {
 
       {/* Bottom Sheet */}
       {selectedComplex && (
-        <Animated.View
-          entering={SlideInUp.springify().damping(15)}
-          exiting={SlideOutDown.springify().damping(15)}
-          style={styles.bottomSheet}
-        >
+        <FadeInView type="slideInUp" style={styles.bottomSheet}>
           <GlassCard style={styles.sheetCard}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetRow}>
@@ -378,7 +368,7 @@ export default function MapScreen() {
               </Pressable>
             </View>
           </GlassCard>
-        </Animated.View>
+        </FadeInView>
       )}
     </View>
   );

@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { FadeInView } from '../components/FadeInView';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../lib/store';
@@ -147,7 +147,7 @@ export default function ScheduleScreen() {
 
         {/* Court info summary */}
         {complex && court && (
-          <Animated.View entering={FadeIn.duration(300)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+          <FadeInView type="fadeIn" duration={300} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             <GlassCard style={styles.courtInfoCard}>
               <View style={styles.courtInfoRow}>
                 <Ionicons name="location" size={16} color={Colors.primary} />
@@ -160,16 +160,16 @@ export default function ScheduleScreen() {
                 </Text>
               </View>
             </GlassCard>
-          </Animated.View>
+          </FadeInView>
         )}
 
         {/* Month name */}
-        <Animated.View entering={FadeInDown.duration(300).delay(100)} style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+        <FadeInView type="fadeInDown" duration={300} delay={100} style={{ paddingHorizontal: 16, marginBottom: 8 }}>
           <Text style={[styles.monthText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{activeMonth}</Text>
-        </Animated.View>
+        </FadeInView>
 
         {/* Date picker pills */}
-        <Animated.View entering={FadeInDown.duration(300).delay(150)} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+        <FadeInView type="fadeInDown" duration={300} delay={150} style={{ paddingHorizontal: 16, marginBottom: 16 }}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.datePillsRow}>
               {dateOptions.map((opt) => {
@@ -200,20 +200,20 @@ export default function ScheduleScreen() {
               })}
             </View>
           </ScrollView>
-        </Animated.View>
+        </FadeInView>
 
         {/* Low availability warning */}
         {lowAvailability && (
-          <Animated.View entering={FadeIn.duration(300)} style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <FadeInView type="fadeIn" duration={300} style={{ paddingHorizontal: 16, marginBottom: 12 }}>
             <View style={styles.warningBadge}>
               <Ionicons name="alert-circle" size={16} color="#F59E0B" />
               <Text style={styles.warningText}>Poca disponibilidad — solo {availableCount} horarios disponibles</Text>
             </View>
-          </Animated.View>
+          </FadeInView>
         )}
 
         {/* Time grid */}
-        <Animated.View entering={FadeInDown.duration(400).delay(200)} style={{ paddingHorizontal: 16 }}>
+        <FadeInView type="fadeInDown" duration={400} delay={200} style={{ paddingHorizontal: 16 }}>
           <Text style={[styles.timeGridTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Horarios disponibles</Text>
           <View style={styles.timeGrid}>
             {mockTimeSlots.map((slot) => {
@@ -250,11 +250,11 @@ export default function ScheduleScreen() {
               );
             })}
           </View>
-        </Animated.View>
+        </FadeInView>
 
         {/* Selected time summary */}
         {selectedTimeSlot && selectedSlot && (
-          <Animated.View entering={FadeIn.duration(300)} style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 16 }}>
+          <FadeInView type="fadeIn" duration={300} style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 16 }}>
             <GlassCard style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <View style={[styles.summaryIcon, { backgroundColor: Colors.primaryBg }]}>
@@ -269,7 +269,7 @@ export default function ScheduleScreen() {
                 <Text style={[styles.summaryPrice, { color: Colors.primary }]}>{formatPrice(selectedSlot.price)}</Text>
               </View>
             </GlassCard>
-          </Animated.View>
+          </FadeInView>
         )}
       </ScrollView>
 

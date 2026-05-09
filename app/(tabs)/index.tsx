@@ -16,7 +16,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { FadeInView } from '../../components/FadeInView';
 
 import { useAppStore } from '../../lib/store';
 import {
@@ -77,20 +77,20 @@ function AuthScreen() {
 
       {showWelcome && (
         <View style={styles.welcomeBackdrop}>
-          <Animated.View entering={FadeIn.duration(500)} style={styles.welcomeContent}>
-            <Animated.View entering={FadeInDown.delay(200)} style={styles.welcomeCheckCircle}>
+          <FadeInView type="fadeIn" duration={500} style={styles.welcomeContent}>
+            <FadeInView type="fadeInDown" delay={200} style={styles.welcomeCheckCircle}>
               <Ionicons name="checkmark-circle" size={72} color={Colors.primary} />
-            </Animated.View>
-            <Animated.View entering={FadeInDown.delay(500)}>
+            </FadeInView>
+            <FadeInView type="fadeInDown" delay={500}>
               <Text style={styles.welcomeTitle}>¡Bienvenido!</Text>
               <Text style={styles.welcomeSub}>{name || 'Carlos Mendoza'}</Text>
-            </Animated.View>
-          </Animated.View>
+            </FadeInView>
+          </FadeInView>
         </View>
       )}
 
       <ScrollView contentContainerStyle={styles.authScroll} keyboardShouldPersistTaps="handled">
-        <Animated.View entering={FadeIn.duration(400)} style={styles.authContent}>
+        <FadeInView type="fadeIn" duration={400} style={styles.authContent}>
           <View style={styles.logoContainer}>
             <View style={[styles.logoGlass, Platform.OS === 'web' && { backdropFilter: 'blur(30px) saturate(200%)', WebkitBackdropFilter: 'blur(30px) saturate(200%)' }] as any}>
               <Ionicons name="football" size={32} color={Colors.primary} />
@@ -149,7 +149,7 @@ function AuthScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Animated.View>
+        </FadeInView>
       </ScrollView>
     </View>
   );
@@ -169,7 +169,7 @@ const VenueCard = React.memo(function VenueCard({ complex, isFav, onToggleFav, o
   const courtTypes = Array.from(new Set(complex.courts.map((c: any) => c.type))) as string[];
 
   return (
-    <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+    <FadeInView type="fadeInDown" duration={400} delay={100}>
       <GlassCard padding={0} style={styles.venueCard}>
         <TouchableOpacity onPress={onPress} activeOpacity={0.95}>
           <View style={styles.venueImageContainer}>
@@ -204,7 +204,7 @@ const VenueCard = React.memo(function VenueCard({ complex, isFav, onToggleFav, o
           </View>
         </TouchableOpacity>
       </GlassCard>
-    </Animated.View>
+    </FadeInView>
   );
 });
 
@@ -286,7 +286,7 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <Animated.View entering={FadeIn.duration(400)} style={styles.header}>
+        <FadeInView type="fadeIn" duration={400} style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[styles.greeting, { color: isDark ? Colors.textDark : Colors.text }]}>
               Hola, {firstName} 👋
@@ -309,10 +309,10 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </Animated.View>
+        </FadeInView>
 
         {/* Promo Banner */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+        <FadeInView type="fadeInDown" duration={400} delay={100}>
           <View style={styles.bannerContainer}>
             <FlatList
               ref={bannerRef}
@@ -345,10 +345,10 @@ export default function HomeScreen() {
               ))}
             </View>
           </View>
-        </Animated.View>
+        </FadeInView>
 
         {/* Search Bar */}
-        <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+        <FadeInView type="fadeInDown" duration={400} delay={200}>
           <GlassCard style={styles.searchCard}>
             <View style={styles.searchRow}>
               <Ionicons name="search-outline" size={18} color={Colors.textTertiary} />
@@ -373,10 +373,10 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           </GlassCard>
-        </Animated.View>
+        </FadeInView>
 
         {/* District pills */}
-        <Animated.View entering={FadeInDown.duration(400).delay(250)}>
+        <FadeInView type="fadeInDown" duration={400} delay={250}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsScroll}>
             {districts.map((d) => (
               <TouchableOpacity
@@ -396,11 +396,11 @@ export default function HomeScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </Animated.View>
+        </FadeInView>
 
         {/* Sport type pills */}
         {showFilters && (
-          <Animated.View entering={FadeInDown.duration(300)}>
+          <FadeInView type="fadeInDown" duration={300}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillsScroll}>
               {sportTypes.map((s) => (
                 <TouchableOpacity
@@ -420,12 +420,12 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Animated.View>
+          </FadeInView>
         )}
 
         {/* Recently Viewed */}
         {recentlyViewedComplexes.length > 0 && (
-          <Animated.View entering={FadeInDown.duration(400)}>
+          <FadeInView type="fadeInDown" duration={400}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitleSecondary, { color: isDark ? Colors.textDark : Colors.text }]}>Vistos recientemente</Text>
             </View>
@@ -444,7 +444,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Animated.View>
+          </FadeInView>
         )}
 
         {/* Section title + sort */}

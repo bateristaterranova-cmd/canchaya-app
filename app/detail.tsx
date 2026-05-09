@@ -11,7 +11,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { FadeInView } from '../components/FadeInView';
 
 import { useAppStore } from '../lib/store';
 import {
@@ -108,7 +108,7 @@ export default function DetailScreen() {
         </ScrollView>
 
         {/* Info */}
-        <Animated.View entering={FadeInDown.duration(400)}>
+        <FadeInView type="fadeInDown" duration={400}>
           <View style={styles.infoSection}>
             <Text style={[styles.complexName, { color: isDark ? Colors.textDark : Colors.text }]}>{complex.name}</Text>
             <View style={styles.ratingRow}>
@@ -130,10 +130,10 @@ export default function DetailScreen() {
               <Text style={[styles.hoursText, { color: isDark ? Colors.textSecondaryDark : Colors.textSecondary }]}>{complex.openHour}:00 - {complex.closeHour}:00</Text>
             </View>
           </View>
-        </Animated.View>
+        </FadeInView>
 
         {/* Amenities */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+        <FadeInView type="fadeInDown" duration={400} delay={100}>
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Servicios</Text>
           <View style={styles.amenitiesGrid}>
             {complex.amenities.map((amenity) => (
@@ -147,10 +147,10 @@ export default function DetailScreen() {
               </GlassCard>
             ))}
           </View>
-        </Animated.View>
+        </FadeInView>
 
         {/* Courts */}
-        <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+        <FadeInView type="fadeInDown" duration={400} delay={200}>
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Canchas</Text>
           {complex.courts.map((court) => (
             <GlassCard key={court.id} style={styles.courtCard} padding={12}>
@@ -176,10 +176,10 @@ export default function DetailScreen() {
               </View>
             </GlassCard>
           ))}
-        </Animated.View>
+        </FadeInView>
 
         {/* Map Preview */}
-        <Animated.View entering={FadeInDown.duration(400).delay(300)}>
+        <FadeInView type="fadeInDown" duration={400} delay={300}>
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Ubicación</Text>
           <GlassCard style={styles.mapPreviewCard} padding={0}>
             <View style={styles.mapPreviewPlaceholder}>
@@ -191,10 +191,10 @@ export default function DetailScreen() {
               </View>
             </View>
           </GlassCard>
-        </Animated.View>
+        </FadeInView>
 
         {/* Reviews */}
-        <Animated.View entering={FadeInDown.duration(400).delay(350)}>
+        <FadeInView type="fadeInDown" duration={400} delay={350}>
           <View style={styles.reviewsHeader}>
             <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Reseñas</Text>
             {reviews.length > 0 && (
@@ -228,7 +228,7 @@ export default function DetailScreen() {
               </GlassCard>
             ))
           )}
-        </Animated.View>
+        </FadeInView>
 
         <View style={{ height: 40 }} />
       </ScrollView>

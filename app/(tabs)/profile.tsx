@@ -14,7 +14,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { FadeInView } from '../../components/FadeInView';
 
 import { useAppStore } from '../../lib/store';
 import { mockComplexes, formatPrice, getCourtTypeLabel } from '../../lib/mock-data';
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top || 12 }]}
       >
         {/* ── Avatar Section ───────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.avatarSection}>
+        <FadeInView type="fadeInDown" duration={400} style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
             <View style={[styles.avatarRing, { borderColor: Colors.primary }]}>
               <Image source={{ uri: user.avatar }} style={styles.avatar} contentFit="cover" />
@@ -140,10 +140,10 @@ export default function ProfileScreen() {
           <Text style={[styles.userPhone, { color: isDark ? Colors.textTertiaryDark : Colors.textTertiary }]}>
             {user.phone}
           </Text>
-        </Animated.View>
+        </FadeInView>
 
         {/* ── Contact Info Section ─────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(400).delay(50)}>
+        <FadeInView type="fadeInDown" duration={400} delay={50}>
           <GlassCard style={styles.contactCard}>
             <View style={styles.contactRow}>
               <View style={[styles.contactIcon, { backgroundColor: Colors.primaryBg }]}>
@@ -175,10 +175,10 @@ export default function ProfileScreen() {
               </View>
             </View>
           </GlassCard>
-        </Animated.View>
+        </FadeInView>
 
         {/* ── Loyalty Program Section ──────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+        <FadeInView type="fadeInDown" duration={400} delay={100}>
           <GlassCard style={styles.loyaltyCard}>
             <View style={styles.loyaltyHeader}>
               <View style={styles.loyaltyTitleRow}>
@@ -241,10 +241,10 @@ export default function ProfileScreen() {
               ))}
             </View>
           </GlassCard>
-        </Animated.View>
+        </FadeInView>
 
         {/* ── Achievements Grid ────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(400).delay(150)}>
+        <FadeInView type="fadeInDown" duration={400} delay={150}>
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>
             Logros
           </Text>
@@ -291,10 +291,10 @@ export default function ProfileScreen() {
               </GlassCard>
             ))}
           </View>
-        </Animated.View>
+        </FadeInView>
 
         {/* ── Menu Items ───────────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(400).delay(200)}>
+        <FadeInView type="fadeInDown" duration={400} delay={200}>
           <Text style={[styles.sectionTitle, { color: isDark ? Colors.textDark : Colors.text }]}>
             Opciones
           </Text>
@@ -322,10 +322,10 @@ export default function ProfileScreen() {
               </React.Fragment>
             ))}
           </GlassCard>
-        </Animated.View>
+        </FadeInView>
 
         {/* ── Dark Mode Toggle ─────────────────────────────────────────── */}
-        <Animated.View entering={FadeInDown.duration(400).delay(250)}>
+        <FadeInView type="fadeInDown" duration={400} delay={250}>
           <GlassCard style={styles.darkModeCard}>
             <View style={styles.darkModeRow}>
               <View style={styles.darkModeLeft}>
@@ -348,7 +348,7 @@ export default function ProfileScreen() {
               />
             </View>
           </GlassCard>
-        </Animated.View>
+        </FadeInView>
 
         {/* ── Logout Button ────────────────────────────────────────────── */}
         <TouchableOpacity

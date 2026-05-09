@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,17 +7,13 @@ import {
   RefreshControl,
   StyleSheet,
   TouchableOpacity,
+  Animated as RNAnimated,
+  Easing,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { FadeInView } from '../../components/FadeInView';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAppStore } from '../../lib/store';
@@ -46,7 +42,7 @@ const STATUS_CONFIG: Record<
 export default function ActivityScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('proximas');
   const [refreshing, setRefreshing] = useState(false);
-  const spinValue = useSharedValue(0);
+  const spinValue = useRef(new RNAnimated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
   const reservations = useAppStore((s) => s.reservations);
@@ -66,16 +62,14 @@ export default function ActivityScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    spinValue.value = withRepeat(withTiming(360, { duration: 800 }), -1, false);
+    RNAnimated.loop(RNAnimated.timing(spinValue, { toValue: 1, duration: 800, easing: Easing.linear, useNativeDriver: true })).start();
     setTimeout(() => {
       setRefreshing(false);
-      spinValue.value = 0;
+      spinValue.setValue(0);
     }, 1200);
   }, []);
 
-  const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${spinValue.value}deg` }],
-  }));
+  const spinStyle = { transform: [{ rotate: spinValue.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] };
 
   const handleCancel = (id: string) => {
     cancelReservation(id);
@@ -91,7 +85,7 @@ export default function ActivityScreen() {
     const canCancel = item.status === 'pending' || item.status === 'confirmed';
 
     return (
-      <Animated.View entering={FadeInDown.duration(400).delay(index * 80)}>
+      <FadeInView type="fadeInDown" duration={400} delay={index * 80}>
         <GlassCard style={styles.reservationCard}>
           <View style={styles.cardRow}>
             <Image
@@ -132,7 +126,7 @@ export default function ActivityScreen() {
             </Pressable>
           )}
         </GlassCard>
-      </Animated.View>
+      </FadeInView>
     );
   };
 
@@ -167,9 +161,9 @@ export default function ActivityScreen() {
       <View style={[styles.header, { paddingTop: insets.top || 8 + 8 }]}>
         <Text style={[styles.headerTitle, { color: isDark ? Colors.textDark : Colors.text }]}>Mi Actividad</Text>
         <Pressable onPress={onRefresh} style={styles.refreshButton}>
-          <Animated.View style={refreshing ? spinStyle : undefined}>
+          <RNAnimated.View style={refreshing ? spinStyle : undefined}>
             <Ionicons name="refresh" size={22} color={isDark ? Colors.textSecondaryDark : Colors.textSecondary} />
-          </Animated.View>
+          </RNAnimated.View>
         </Pressable>
       </View>
 
